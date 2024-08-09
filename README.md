@@ -1,2 +1,9 @@
-# ai-science-time-series
-Experiement with foundation models and libraries for AI for science time series data sets
+# Setup
+
+Create virtual environment:
+```
+cd path/to/time-series-ai-for-science
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+```
