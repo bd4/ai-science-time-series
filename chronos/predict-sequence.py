@@ -20,7 +20,7 @@ import torch
 from chronos import ChronosPipeline
 
 
-def main(inpath, outpath, prediction_length = 24):
+def main(inpath, outpath, prediction_length=24):
     values = np.loadtxt(inpath, dtype=np.float32)
     train = values[:-prediction_length]
     df = pd.DataFrame(values)
@@ -41,22 +41,30 @@ def main(inpath, outpath, prediction_length = 24):
         num_samples=len(train),
     )
 
-    history_tail = values[-min(4*prediction_length, len(values)):]
+    history_tail = values[-min(4 * prediction_length, len(values)) :]
     forecast_index = range(len(history_tail) - prediction_length, len(history_tail))
     low, median, high = np.quantile(forecast[0].numpy(), [0.1, 0.5, 0.9], axis=0)
 
     plt.figure(figsize=(8, 4))
     plt.plot(history_tail, color="royalblue", label="historical data")
     plt.plot(forecast_index, median, color="tomato", label="median forecast")
-    plt.fill_between(forecast_index, low, high, color="tomato", alpha=0.3, label="80% prediction interval")
+    plt.fill_between(
+        forecast_index,
+        low,
+        high,
+        color="tomato",
+        alpha=0.3,
+        label="80% prediction interval",
+    )
     plt.legend()
     plt.grid()
-    #plt.show()
+    # plt.show()
     plt.savefig(outpath)
 
 
 if __name__ == "__main__":
     import sys
+
     inpath = sys.argv[1]
     outpath, _ = os.path.splitext(inpath)
     outpath += "-chronos.pdf"

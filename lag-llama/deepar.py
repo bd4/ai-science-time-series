@@ -11,6 +11,7 @@ from gluonts.dataset.pandas import PandasDataset
 from gluonts.dataset.split import split
 from gluonts.torch import DeepAREstimator
 
+
 def main(inpath, outpath):
     # Load data from a CSV file into a PandasDataset
     if inpath is None:
@@ -24,8 +25,10 @@ def main(inpath, outpath):
         freq = "M"
     else:
         values = np.loadtxt(inpath, dtype=np.float32)
-        df = pd.DataFrame({ "target": values },
-                          index=pd.date_range("2024-01-01", periods=len(values), freq="1H"))
+        df = pd.DataFrame(
+            {"target": values},
+            index=pd.date_range("2024-01-01", periods=len(values), freq="1H"),
+        )
         dataset = PandasDataset(df)
         freq = "H"
 
@@ -43,14 +46,15 @@ def main(inpath, outpath):
     # Plot predictions
     plt.plot(df, color="black")
     for forecast in forecasts:
-      forecast.plot()
+        forecast.plot()
     plt.legend(["True values"], loc="upper left", fontsize="xx-large")
-    #plt.show()
+    # plt.show()
     plt.savefig(outpath)
 
 
 if __name__ == "__main__":
     import sys
+
     inpath = sys.argv[1]
     outpath, _ = os.path.splitext(inpath)
     outpath += "_deepar.pdf"

@@ -13,7 +13,7 @@ from statsmodels.graphics import tsaplots
 import statsmodels.tsa.api as tsa
 
 
-def main(inpath, outpath, prediction_length = 24):
+def main(inpath, outpath, prediction_length=24):
     values = np.loadtxt(inpath, dtype=np.float32)
     dates = pd.date_range("2024-01-01", periods=len(values), freq="1H")
     df = pd.Series(values, index=dates)
@@ -35,6 +35,7 @@ def main(inpath, outpath, prediction_length = 24):
 
 if __name__ == "__main__":
     import sys
+
     inpath = sys.argv[1]
     outpath, _ = os.path.splitext(inpath)
     outpath += "-statsmodels.pdf"
