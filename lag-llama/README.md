@@ -19,5 +19,5 @@ huggingface-cli download time-series-foundation-models/Lag-Llama lag-llama.ckpt
 
 ```
 ../bin/arma-gen.py -n 2400 --phi 0.75 -0.25 --theta 0.65 0.35 -o arma22.txt
-./ll-seq.py arma22.txt
+./predict-sequence.py arma22.txt
 ```

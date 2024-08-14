@@ -12,32 +12,71 @@ import matplotlib.dates as mdates
 from statsmodels.graphics import tsaplots
 import statsmodels.tsa.api as tsa
 
+import ai4ts
 
-def main(inpath, outpath, prediction_length=24):
-    values = np.loadtxt(inpath, dtype=np.float32)
-    dates = pd.date_range("2024-01-01", periods=len(values), freq="1H")
-    df = pd.Series(values, index=dates)
-    df_train = df[-prediction_length:]
 
-    n_cycles = len(df) / prediction_length
+def get_arg_parser():
+    parser = ai4ts.arma.get_arg_parser()
+    parser.add_argument(
+        "--order",
+        help="comma seprated AR,I,MA orders to use with input file",
+    )
+    parser.add_argument(
+        "-l",
+        "--prediction-length",
+        type=int,
+        required=True,
+        help="How many data points to predict using the ARMA model",
+    )
+    return parser
 
-    model = tsa.ARIMA(df_train, order=(2, 0, 2), trend="n")
+
+def main():
+    parser = get_arg_parser()
+    args = parser.parse_args()
+
+    if args.input_file:
+        df = ai4ts.io.read_df(args.input_file)
+        if not args.order:
+            parser.error("order is required when using input file")
+        order = args.order.split(",")
+        if len(order) != 3:
+            parser.error("order must be three comma separated values")
+    else:
+        if not args.frequency:
+            parser.error("frequency is required if input file not specified")
+
+        phi = args.phi if args.phi else []
+        theta = args.theta if args.theta else []
+
+        order = (len(phi), 0, len(theta))
+        df = ai4ts.arma.arma_generate_df(
+            args.count,
+            phi,
+            theta,
+            "2024-01-01",
+            frequency=args.frequency,
+            scale=args.scale_deviation,
+            mean=args.mean,
+        )
+        y = df["target"]
+
+    dates = df["ds"]
+    df_train = df[-args.prediction_length :]
+
+    model = tsa.ARIMA(df_train["target"], order=order, trend="n")
     forecast = model.fit()
 
-    plot_start_date = "2024-04-03"
-    predict_start_date = dates[-prediction_length]
+    plot_start_date = dates.iloc[-min(5 * args.prediction_length, len(dates))]
     fig, ax = plt.subplots(figsize=(10, 8))
-    ax.plot(df.loc[plot_start_date:], color="lightgreen")
-    fig = tsaplots.plot_predict(forecast, start=predict_start_date, ax=ax)
+    df.loc[df["ds"] >= plot_start_date].plot(x="ds", y="target", color="lightgreen", ax=ax)
+    fig = tsaplots.plot_predict(forecast, start=-args.prediction_length, ax=ax)
     legend = ax.legend(loc="upper left")
-    fig.savefig(outpath)
+    if args.output_file:
+        fig.savefig(outpath)
+    else:
+        plt.show()
 
 
 if __name__ == "__main__":
-    import sys
-
-    inpath = sys.argv[1]
-    outpath, _ = os.path.splitext(inpath)
-    outpath += "-statsmodels.pdf"
-    main(inpath, outpath)
-    print(outpath)
+    main()
