@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from itertools import islice
+import math
 import os.path
 
 import numpy as np
@@ -29,6 +30,20 @@ def get_arg_parser():
         help="How many data points to predict using the ARMA model",
     )
     return parser
+
+
+def get_fit_param_arrays(params):
+    ar = []
+    ma = []
+    var = 0.0
+    for key in params.index:
+        if key.startswith("ar."):
+            ar.append(params[key])
+        elif key.startswith("ma."):
+            ma.append(params[key])
+        elif key == "sigma2":
+            var = params[key]
+    return ar, ma, var
 
 
 def main():
@@ -65,17 +80,29 @@ def main():
     df_train = df[-args.prediction_length :]
 
     model = tsa.ARIMA(df_train["target"], order=order, trend="n")
-    forecast = model.fit()
+    model_fit = model.fit()
+    fit_ar, fit_ma, fit_var = get_fit_param_arrays(model_fit.params)
 
+    df_forecast = model_fit.forecast(steps=args.prediction_length)
+
+    print("Actual: ", phi, theta, args.scale_deviation)
+    print("Fit   : ", fit_ar, fit_ma, math.sqrt(fit_var))
+
+    """
     plot_start_date = dates.iloc[-min(5 * args.prediction_length, len(dates))]
     fig, ax = plt.subplots(figsize=(10, 8))
-    df.loc[df["ds"] >= plot_start_date].plot(x="ds", y="target", color="lightgreen", ax=ax)
+    df.loc[df["ds"] >= plot_start_date].plot(
+        x="ds", y="target", color="lightgreen", ax=ax
+    )
     fig = tsaplots.plot_predict(forecast, start=-args.prediction_length, ax=ax)
     legend = ax.legend(loc="upper left")
     if args.output_file:
         fig.savefig(outpath)
     else:
         plt.show()
+    """
+
+    ai4ts.plot.plot_prediction(df, df_forecast, args.output_file)
 
 
 if __name__ == "__main__":

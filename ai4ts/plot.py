@@ -20,11 +20,11 @@ def plot_prediction(
 
     fig, ax = plt.subplots(figsize=(8, 4))
     df_actual_display.plot(
-        x_column, y_column, ax=ax, color="royalblue", label="actual data"
+        x=x_column, y=y_column, ax=ax, color="royalblue", label="actual data"
     )
-    df_prediction.plot(x_column, y_column, ax=ax, color="tomato", label="forecast")
+    df_prediction.plot(x=x_column, y=y_column, ax=ax, color="tomato", label="forecast")
     ax.legend()
     if outpath:
         fig.savefig(outpath)
     else:
-        fig.show()
+        plt.show()
