@@ -15,7 +15,7 @@ def read_df(input_file, parser=None):
         df = pd.read_pickle(input_file)
     else:
         msg = "Unknown input format for pandas: '%s'" % ext
-        if parsier is not None:
+        if parser is not None:
             parser.error(msg)
         else:
             raise ValueError(msg)

@@ -83,25 +83,32 @@ def main():
     model_fit = model.fit()
     fit_ar, fit_ma, fit_var = get_fit_param_arrays(model_fit.params)
 
-    df_forecast = model_fit.forecast(steps=args.prediction_length)
-
     print("Actual: ", phi, theta, args.scale_deviation)
     print("Fit   : ", fit_ar, fit_ma, math.sqrt(fit_var))
 
+    pred = model_fit.get_prediction(start=-args.prediction_length, end=-1)
+
+    # import ipdb; ipdb.set_trace()
+
+    # plot can be done using statsmodels api directly, but this calls prediction under
+    # the hood and is not documented well, so it not clear what it is doing. Better
+    # to use our own common plot code that is the same for all models
     """
     plot_start_date = dates.iloc[-min(5 * args.prediction_length, len(dates))]
     fig, ax = plt.subplots(figsize=(10, 8))
     df.loc[df["ds"] >= plot_start_date].plot(
         x="ds", y="target", color="lightgreen", ax=ax
     )
-    fig = tsaplots.plot_predict(forecast, start=-args.prediction_length, ax=ax)
-    legend = ax.legend(loc="upper left")
+    fig = tsaplots.plot_predict(model_fit, start=-args.prediction_length, ax=ax)
+    ax.legend(loc="upper left")
     if args.output_file:
-        fig.savefig(outpath)
+        fig.savefig(args.output_file)
     else:
         plt.show()
     """
 
+    forecast_ds = df.ds.iloc[-args.prediction_length :]
+    df_forecast = pd.DataFrame({"ds": forecast_ds, "target": pred.predicted_mean})
     ai4ts.plot.plot_prediction(df, df_forecast, args.output_file)
 
 
