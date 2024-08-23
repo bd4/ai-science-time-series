@@ -4,25 +4,38 @@ from matplotlib import pyplot as plt
 
 
 def plot_prediction(
-    df_actual, df_prediction, outpath=None, n_cycles=5, x_column="ds", y_column="target"
+    df_actual,
+    prediction_array,
+    outpath=None,
+    display_cycles=5,
+    time_column="ds",
+    data_column="target",
 ):
     """
     Plot data and predictions.
 
     :param df_actual: DataFrame with historical data + actual data for prediction period
-    :param df_prediction: Predicted data based on historical data
+    :param prediction_array: np.array or pd.Series of predicted data
     :param outpath: save to this path instead of displaying
-    :param n_cycles: number of prediction length cycles to include in the plot
+    :param display_cycles: number of prediction length cycles to include in the plot
     """
-    prediction_length = len(df_prediction)
-    display_length = n_cycles * prediction_length
+    prediction_length = len(prediction_array)
+    display_length = display_cycles * prediction_length
     df_actual_display = df_actual[-min(display_length, len(df_actual)) :]
 
     fig, ax = plt.subplots(figsize=(8, 4))
-    df_actual_display.plot(
-        x=x_column, y=y_column, ax=ax, color="royalblue", label="actual data"
+    ax.plot(
+        df_actual_display[time_column],
+        df_actual_display[data_column],
+        color="royalblue",
+        label="actual data",
     )
-    df_prediction.plot(x=x_column, y=y_column, ax=ax, color="tomato", label="forecast")
+    ax.plot(
+        df_actual[time_column].iloc[-prediction_length:],
+        prediction_array,
+        color="tomato",
+        label="forecast",
+    )
     ax.legend()
     if outpath:
         fig.savefig(outpath)

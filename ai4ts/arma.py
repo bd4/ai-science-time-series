@@ -62,7 +62,7 @@ def main():
                 print(y[-10:])
 
 
-def arma_generate(n, phi, theta, scale=1.0, mean=0, frequency=None):
+def arma_generate(n, phi, theta, scale=1.0, mean=0, frequency=None, dtype=None):
     """
     Generate a sequence with an ARMA process
 
@@ -81,10 +81,15 @@ def arma_generate(n, phi, theta, scale=1.0, mean=0, frequency=None):
     y = sm.tsa.arma_generate_sample(arparams, maparams, nsample=n, scale=scale)
     y += mean
 
+    if dtype is not None:
+        y = y.astype(dtype)
+
     return y
 
 
-def arma_generate_df(n, phi, theta, start_date, frequency, scale=1.0, mean=0):
+def arma_generate_df(
+    n, phi, theta, start_date, frequency, scale=1.0, mean=0, dtype=None
+):
     """
     Generate a sequence with an ARMA process
 
@@ -95,12 +100,13 @@ def arma_generate_df(n, phi, theta, start_date, frequency, scale=1.0, mean=0):
     :param frequency: string code for time frequency (s, m, h, d, w, m, y, etc)
     :param scale: standard deviation of noise
     :param mean: mean of generated data (default 0.0)
+    :param dtype: numpy datatype to use
 
     :returns: pandas dataframe with columns 'ds' (dates), 'target" (generated
       arma sequence), 'frequency' (copy of specified frequency code)
                                                                     d
     """
-    y = arma_generate(n, phi, theta, scale=scale, mean=mean)
+    y = arma_generate(n, phi, theta, scale=scale, mean=mean, dtype=dtype)
     dates = pd.date_range(start_date, freq=frequency, periods=n)
     # Note: use column names that model libraries expect. Some libraries
     # may still require renaming to work.
