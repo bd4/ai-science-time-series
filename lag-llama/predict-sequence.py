@@ -9,13 +9,19 @@ from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 
 import torch
-from gluonts.evaluation import make_evaluation_predictions, Evaluator
-from gluonts.dataset.repository.datasets import get_dataset
 
+from gluonts.evaluation import make_evaluation_predictions
 from gluonts.dataset.pandas import PandasDataset
-import pandas as pd
 
 from lag_llama.gluon.estimator import LagLlamaEstimator
+
+import ai4ts
+
+
+def get_script_relative_path(fname):
+    script_dir = os.path.abspath(os.path.dirname(__file__))
+    print("script dir ", script_dir)
+    return os.path.join(script_dir, fname)
 
 
 def get_lag_llama_predictions(
@@ -24,24 +30,26 @@ def get_lag_llama_predictions(
     device,
     context_length=32,
     use_rope_scaling=False,
-    num_samples=100,
+    num_samples=10,
 ):
-    ckpt = torch.load(
-        "lag-llama.ckpt", map_location=device
-    )  # Uses GPU since in this Colab we use a GPU.
+    ckpt_path = get_script_relative_path("lag-llama.ckpt")
+    ckpt = torch.load(ckpt_path, map_location=device)
     estimator_args = ckpt["hyper_parameters"]["model_kwargs"]
 
     rope_scaling_arguments = {
         "type": "linear",
         "factor": max(
-            1.0, (context_length + prediction_length) / estimator_args["context_length"]
+            1.0,
+            (context_length + prediction_length)
+            / estimator_args["context_length"],
         ),
     }
 
     estimator = LagLlamaEstimator(
-        ckpt_path="lag-llama.ckpt",
+        ckpt_path=ckpt_path,
         prediction_length=prediction_length,
-        context_length=context_length,  # Lag-Llama was trained with a context length of 32, but can work with any context length
+        # Lag-Llama was trained with a context length of 32, but can work with any context length
+        context_length=context_length,
         # estimator args
         input_size=estimator_args["input_size"],
         n_layer=estimator_args["n_layer"],
@@ -68,23 +76,98 @@ def get_lag_llama_predictions(
     return forecasts, tss
 
 
-def main(inpath, outpath):
-    values = np.loadtxt(inpath, dtype=np.float32)
-    df = pd.DataFrame(
-        {"target": values},
-        index=pd.date_range("2024-01-01", periods=len(values), freq="1H"),
+def get_arg_parser():
+    parser = ai4ts.arma.get_arg_parser()
+    parser.add_argument(
+        "--order",
+        help="comma seprated AR,I,MA orders to use with input file",
     )
-    dataset = PandasDataset(df)
-    prediction_length = 24  # Define your prediction length. We use 24 here since the data is of hourly frequency
-    num_samples = 100  # number of samples sampled from the probability distribution for each timestep
-    device = torch.device(
-        "cuda:0"
-    )  # You can switch this to CPU or other GPUs if you'd like, depending on your environment
+    parser.add_argument(
+        "-l",
+        "--prediction-length",
+        type=int,
+        required=True,
+        help="How many data points to predict using the ARMA model",
+    )
+    parser.add_argument(
+        "--device",
+        default="cuda",
+        help="Pytorch device, e.g. cpu, cuda (nvidia), mps (apple), xpu (intel)",
+    )
+    return parser
+
+
+def get_fit_param_arrays(params):
+    ar = []
+    ma = []
+    var = 0.0
+    for key in params.index:
+        if key.startswith("ar."):
+            ar.append(params[key])
+        elif key.startswith("ma."):
+            ma.append(params[key])
+        elif key == "sigma2":
+            var = params[key]
+    return ar, ma, var
+
+
+def main():
+    parser = get_arg_parser()
+    args = parser.parse_args()
+
+    order = None
+    if args.input_file:
+        df = ai4ts.io.read_df(args.input_file)
+        if args.order:
+            order = args.order.split(",")
+        if len(order) != 3:
+            parser.error("order must be three comma separated values")
+    else:
+        if not args.frequency:
+            parser.error("frequency is required if input file not specified")
+
+        phi = args.phi if args.phi else []
+        theta = args.theta if args.theta else []
+
+        order = (len(phi), 0, len(theta))
+        # NB: lag-llama required float32
+        df = ai4ts.arma.arma_generate_df(
+            args.count,
+            phi,
+            theta,
+            "2024-01-01",
+            frequency=args.frequency,
+            scale=args.scale_deviation,
+            mean=args.mean,
+            dtype=np.float32,
+        )
+
+    df_train = df.iloc[: -args.prediction_length]
+
+    dataset = PandasDataset(df_train)
+    device = torch.device(args.device)
 
     forecasts, tss = get_lag_llama_predictions(
-        dataset, prediction_length, device, num_samples
+        dataset=dataset,
+        prediction_length=args.prediction_length,
+        device=device,
+        context_length=32,
+        num_samples=100,
     )
 
+    # import ipdb; ipdb.set_trace()
+
+    title = "lag-llama %d point forecast" % args.prediction_length
+    if args.input_file:
+        title += " (input %s)" % args.input_file
+    elif order is not None:
+        title += " ARIMA(%d,%d,%d)" % order
+
+    ai4ts.plot.plot_prediction(
+        df, forecasts[0].mean, args.output_file, title=title
+    )
+
+    """
     plt.figure(figsize=(20, 15))
     date_formater = mdates.DateFormatter("%b, %d")
     plt.rcParams.update({"font.size": 15})
@@ -94,7 +177,7 @@ def main(inpath, outpath):
         ax = plt.subplot(3, 3, idx + 1)
 
         plt.plot(
-            ts[-4 * prediction_length :].to_timestamp(),
+            ts[-4 * args.prediction_length :].to_timestamp(),
             label="target",
         )
         forecast.plot(color="g")
@@ -104,14 +187,12 @@ def main(inpath, outpath):
 
     plt.gcf().tight_layout()
     plt.legend()
-    plt.savefig(outpath)
+    if args.output_file:
+        plt.savefig(args.output_file)
+    else:
+        plt.show()
+    """
 
 
 if __name__ == "__main__":
-    import sys
-
-    inpath = sys.argv[1]
-    outpath, _ = os.path.splitext(inpath)
-    outpath += ".pdf"
-    main(inpath, outpath)
-    print(outpath)
+    main()

@@ -1,6 +1,5 @@
-import numpy as np
-import pandas as pd
 from matplotlib import pyplot as plt
+import matplotlib.dates as mdates
 
 
 def plot_prediction(
@@ -10,6 +9,7 @@ def plot_prediction(
     display_cycles=5,
     time_column="ds",
     data_column="target",
+    title=None
 ):
     """
     Plot data and predictions.
@@ -23,7 +23,11 @@ def plot_prediction(
     display_length = display_cycles * prediction_length
     df_actual_display = df_actual[-min(display_length, len(df_actual)) :]
 
+    date_formater = mdates.DateFormatter("%b, %d")
+
     fig, ax = plt.subplots(figsize=(8, 4))
+    fig.autofmt_xdate(rotation=60)
+    ax.xaxis.set_major_formatter(date_formater)
     ax.plot(
         df_actual_display[time_column],
         df_actual_display[data_column],
@@ -37,6 +41,10 @@ def plot_prediction(
         label="forecast",
     )
     ax.legend()
+
+    if title is not None:
+        ax.set_title(title)
+
     if outpath:
         fig.savefig(outpath)
     else:
