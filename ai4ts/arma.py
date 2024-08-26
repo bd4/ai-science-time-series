@@ -20,7 +20,9 @@ def main():
         df = io.read_df(args.input_path, parser=parser)
     else:
         if not args.phi and not args.theta:
-            parser.error("phi or theta are required when input path is not specified")
+            parser.error(
+                "phi or theta are required when input path is not specified"
+            )
         elif args.frequency:
             df = arma_generate_df(
                 args.count,
@@ -46,6 +48,7 @@ def main():
         if args.frequency:
             io.write_df(df, args.output_file)
         else:
+            _, ext = os.path.splitext(args.output_file)
             if ext == ".txt" or ext == "":
                 np.savetxt(args.output_file, y)
             elif ext == ".npy":
@@ -88,7 +91,16 @@ def arma_generate(n, phi, theta, scale=1.0, mean=0, frequency=None, dtype=None):
 
 
 def arma_generate_df(
-    n, phi, theta, start_date, frequency, scale=1.0, mean=0, dtype=None
+    n,
+    phi,
+    theta,
+    start_date,
+    frequency,
+    scale=1.0,
+    mean=0,
+    dtype=None,
+    time_column="ds",
+    data_column="target",
 ):
     """
     Generate a sequence with an ARMA process
@@ -101,16 +113,16 @@ def arma_generate_df(
     :param scale: standard deviation of noise
     :param mean: mean of generated data (default 0.0)
     :param dtype: numpy datatype to use
+    :param time_column: name of column for date sequence
+    :param data_column: name of column for generated data points
 
-    :returns: pandas dataframe with columns 'ds' (dates), 'target" (generated
-      arma sequence), 'frequency' (copy of specified frequency code)
-                                                                    d
+    :returns: pandas dataframe with time and data columns named according to
+      the specified arguments, and a 'frequency' column with the specified
+      frequency code
     """
     y = arma_generate(n, phi, theta, scale=scale, mean=mean, dtype=dtype)
     dates = pd.date_range(start_date, freq=frequency, periods=n)
-    # Note: use column names that model libraries expect. Some libraries
-    # may still require renaming to work.
-    df = pd.DataFrame({"ds": dates, "target": y}, pd.Index(dates, name="ds"))
+    df = pd.DataFrame({time_column: dates, data_column: y})
     df["frequency"] = frequency
     return df
 
@@ -119,8 +131,12 @@ def get_arg_parser():
     import argparse
 
     parser = argparse.ArgumentParser(description="generate ARMA dataframe")
-    parser.add_argument("-p", "--phi", nargs="+", type=float, help="AR coefficients")
-    parser.add_argument("-t", "--theta", nargs="+", type=float, help="MA coefficients")
+    parser.add_argument(
+        "-p", "--phi", nargs="+", type=float, help="AR coefficients"
+    )
+    parser.add_argument(
+        "-t", "--theta", nargs="+", type=float, help="MA coefficients"
+    )
     parser.add_argument(
         "-u",
         "--mean",
@@ -154,6 +170,13 @@ def get_arg_parser():
         help="time frequency for generated data (s, h, d, m, y)",
     )
     return parser
+
+
+def forecast(history, prediction_length, ar_order, i_order, ma_order):
+    order = (ar_order, i_order, ma_order)
+    model = sm.tsa.ARIMA(history, order=order)
+    model_fit = model.fit()
+    return model_fit, model_fit.forecast(prediction_length)
 
 
 if __name__ == "__main__":

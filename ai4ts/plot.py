@@ -9,15 +9,22 @@ def plot_prediction(
     display_cycles=5,
     time_column="ds",
     data_column="target",
-    title=None
+    title=None,
+    ax=None
 ):
     """
-    Plot data and predictions.
+    Plot data and predictions. If ax was passed, plots on specified axis and does
+    not display. If ax not passed, save figure to output path if specified, or
+    show if not.
 
     :param df_actual: DataFrame with historical data + actual data for prediction period
     :param prediction_array: np.array or pd.Series of predicted data
     :param outpath: save to this path instead of displaying
     :param display_cycles: number of prediction length cycles to include in the plot
+    :param time_column: name of column with time data
+    :param data_column: name of column with series data
+    :param title: set axis title (optional)
+    :param ax: plot to passed matplotlib axis and do not show or display
     """
     prediction_length = len(prediction_array)
     display_length = display_cycles * prediction_length
@@ -25,8 +32,10 @@ def plot_prediction(
 
     date_formater = mdates.DateFormatter("%b, %d")
 
-    fig, ax = plt.subplots(figsize=(8, 4))
-    fig.autofmt_xdate(rotation=60)
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 4))
+        fig.autofmt_xdate(rotation=60)
+
     ax.xaxis.set_major_formatter(date_formater)
     ax.plot(
         df_actual_display[time_column],
@@ -45,7 +54,8 @@ def plot_prediction(
     if title is not None:
         ax.set_title(title)
 
-    if outpath:
-        fig.savefig(outpath)
-    else:
-        plt.show()
+    if ax is None:
+        if outpath:
+            fig.savefig(outpath)
+        else:
+            plt.show()

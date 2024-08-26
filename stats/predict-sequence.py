@@ -73,14 +73,15 @@ def main():
             scale=args.scale_deviation,
             mean=args.mean,
         )
-        y = df["target"]
 
-    dates = df["ds"]
-    df_train = df.head(args.count - args.prediction_length)
-    # df_train = df.iloc[-args.prediction_length :]
+    df_train = df.iloc[: -args.prediction_length]
 
-    model = tsa.ARIMA(df_train["target"], order=order)
-    model_fit = model.fit()
+    model_fit, forecast = ai4ts.arma.forecast(
+        df_train["target"],
+        prediction_length=args.prediction_length,
+        order=order,
+    )
+
     fit_ar, fit_ma, fit_var = get_fit_param_arrays(model_fit.params)
 
     print("Actual: ", phi, theta, args.scale_deviation)
@@ -88,10 +89,9 @@ def main():
 
     # import ipdb; ipdb.set_trace()
 
-    forecast_series = model_fit.forecast(args.prediction_length)
     ai4ts.plot.plot_prediction(
         df,
-        forecast_series,
+        forecast,
         args.output_file,
     )
 

@@ -11,10 +11,12 @@ setup(
     packages=["ai4ts"],
     keywords=["ai", "time series"],
     python_requires=">=3.9",
-    install_requires=["numpy", "pandas", "statsmodels", "matplotlib", "fastparquet"],
+    install_requires=["numpy", "pandas", "statsmodels", "matplotlib", "fastparquet",
+                      "pyyaml"],
     entry_points={
         "console_scripts": [
             "ai4ts-arma-gen = ai4ts.arma:main",
+            "ai4ts-compare = ai4ts.compare:main",
         ],
     },
 )
