@@ -7,7 +7,7 @@ import statsmodels.api as sm
 
 SEED = 42
 
-from . import io
+import ai4ts
 
 
 def main():
@@ -17,12 +17,10 @@ def main():
     args = parser.parse_args()
 
     if args.input_path:
-        df = io.read_df(args.input_path, parser=parser)
+        df = ai4ts.io.read_df(args.input_path, parser=parser)
     else:
         if not args.phi and not args.theta:
-            parser.error(
-                "phi or theta are required when input path is not specified"
-            )
+            parser.error("phi or theta are required when input path is not specified")
         elif args.frequency:
             df = arma_generate_df(
                 args.count,
@@ -46,7 +44,7 @@ def main():
 
     if args.output_file:
         if args.frequency:
-            io.write_df(df, args.output_file)
+            ai4ts.io.write_df(df, args.output_file)
         else:
             _, ext = os.path.splitext(args.output_file)
             if ext == ".txt" or ext == "":
@@ -131,12 +129,8 @@ def get_arg_parser():
     import argparse
 
     parser = argparse.ArgumentParser(description="generate ARMA dataframe")
-    parser.add_argument(
-        "-p", "--phi", nargs="+", type=float, help="AR coefficients"
-    )
-    parser.add_argument(
-        "-t", "--theta", nargs="+", type=float, help="MA coefficients"
-    )
+    parser.add_argument("-p", "--phi", nargs="+", type=float, help="AR coefficients")
+    parser.add_argument("-t", "--theta", nargs="+", type=float, help="MA coefficients")
     parser.add_argument(
         "-u",
         "--mean",
@@ -172,11 +166,15 @@ def get_arg_parser():
     return parser
 
 
-def forecast(history, prediction_length, ar_order, i_order, ma_order):
+def forecast(
+    times, history, prediction_length, ar_order, i_order, ma_order, device=None
+):
     order = (ar_order, i_order, ma_order)
     model = sm.tsa.ARIMA(history, order=order)
     model_fit = model.fit()
-    return model_fit, model_fit.forecast(prediction_length)
+    return ai4ts.model.Forecast(
+        model_fit.forecast(prediction_length), "ARIMA state space", model_fit
+    )
 
 
 if __name__ == "__main__":

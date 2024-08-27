@@ -3,6 +3,7 @@ from collections import namedtuple
 import math
 
 from matplotlib import pyplot as plt
+import numpy as np
 import yaml
 
 import ai4ts
@@ -34,7 +35,7 @@ class ARIMAParams(object):
         return cls(d["ar"], d["i"], d["ma"])
 
     def __str__(self):
-        return "ARIMA({0}, {1}, {2})".format(
+        return "{0}, {1}, {2}".format(
             float_array_to_str(self.ar), self.i, float_array_to_str(self.ma)
         )
 
@@ -54,6 +55,11 @@ def get_arg_parser():
         type=int,
         default=3,
         help="How many columns to use for plot grid",
+    )
+    parser.add_argument(
+        "--device",
+        default="cuda",
+        help="Pytorch device, e.g. cpu, cuda (nvidia), mps (apple), xpu (intel)",
     )
     return parser
 
@@ -82,34 +88,52 @@ def main():
     if args.phi or args.theta:
         params.append(ARIMAParams(args.phi, 0, args.theta))
 
-    ncols = args.columns
-    nparams = len(params)
-    nrows = math.ceil(nparams / ncols)
+    forecast_fns = [ai4ts.arma.forecast, ai4ts.lag_llama.forecast]
+    ncols = 3
+    nrows = math.ceil(len(params) / ncols)
 
-    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex="col")
+    fig, axs = plt.subplots(
+        nrows=nrows, ncols=ncols, sharex="col", layout="constrained"
+    )
     fig.autofmt_xdate(rotation=60)
 
-    for x in range(ncols):
-        for y in range(nrows):
-            ax = axs[y, x]
-            idx = y * nrows + x
-            if idx >= nparams:
-                break
-            p = params[idx]
-            df = ai4ts.arma.arma_generate_df(
-                args.count,
-                p.ar,
-                p.ma,
-                start_date="2024-01-01",
-                frequency=args.frequency,
-                scale=args.scale_deviation,
-                mean=args.mean,
+    # Note: lag-llama requires float32 input data
+    dtype = np.float32
+    for i, p in enumerate(params):
+        df = ai4ts.arma.arma_generate_df(
+            args.count,
+            p.ar,
+            p.ma,
+            start_date="2024-01-01",
+            frequency=args.frequency,
+            scale=args.scale_deviation,
+            mean=args.mean,
+            dtype=dtype,
+        )
+        df_train = df.iloc[: -args.prediction_length]
+
+        irow = i // ncols
+        icol = i % ncols
+
+        ax = axs[irow, icol]
+
+        forecast_map = {}
+        for forecast_fn in forecast_fns:
+            fcast = forecast_fn(
+                df_train["ds"],
+                df_train["target"],
+                args.prediction_length,
+                p.ar_order,
+                p.i,
+                p.ma_order,
+                device=args.device,
             )
-            df_train = df.iloc[: -args.prediction_length]
-            _, fcast = ai4ts.arma.forecast(
-                df_train["target"], args.prediction_length, p.ar_order, p.i, p.ma_order
-            )
-            ai4ts.plot.plot_prediction(df, fcast, ax=ax, title=str(p))
+            forecast_map[fcast.name] = fcast.data
+        ai4ts.plot.plot_prediction(df, forecast_map, ax=ax, legend=False,
+                                   title=str(p))
+
+    handles, labels = axs[0, 0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower right")
 
     if args.output_file:
         fig.savefig(args.output_file)
