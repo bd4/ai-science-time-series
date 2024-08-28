@@ -83,6 +83,4 @@ def forecast(
         context_length=32,
         num_samples=100,
     )
-    return ai4ts.model.Forecast(
-        forecasts[0].mean, name="lag-llama", model=forecasts[0]
-    )
+    return ai4ts.model.Forecast(forecasts[0].mean, name="lag-llama", model=forecasts[0])

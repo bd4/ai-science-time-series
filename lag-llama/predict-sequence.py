@@ -40,8 +40,7 @@ def get_lag_llama_predictions(
         "type": "linear",
         "factor": max(
             1.0,
-            (context_length + prediction_length)
-            / estimator_args["context_length"],
+            (context_length + prediction_length) / estimator_args["context_length"],
         ),
     }
 
@@ -163,9 +162,7 @@ def main():
     elif order is not None:
         title += " ARIMA(%d,%d,%d)" % order
 
-    ai4ts.plot.plot_prediction(
-        df, forecasts[0].mean, args.output_file, title=title
-    )
+    ai4ts.plot.plot_prediction(df, forecasts[0].mean, args.output_file, title=title)
 
     """
     plt.figure(figsize=(20, 15))
