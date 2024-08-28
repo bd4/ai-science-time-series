@@ -1,6 +1,6 @@
 import os.path
 
-from . import arma, io, plot, model, lag_llama
+from . import arma, io, plot, model, lag_llama, chronos
 
 
 def get_model_path(fname):

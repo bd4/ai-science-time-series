@@ -88,7 +88,11 @@ def main():
     if args.phi or args.theta:
         params.append(ARIMAParams(args.phi, 0, args.theta))
 
-    forecast_fns = [ai4ts.arma.forecast, ai4ts.lag_llama.forecast]
+    forecast_fns = [
+        ai4ts.arma.forecast,
+        ai4ts.lag_llama.forecast,
+        ai4ts.chronos.forecast,
+    ]
     ncols = 3
     nrows = math.ceil(len(params) / ncols)
 
@@ -129,8 +133,7 @@ def main():
                 device=args.device,
             )
             forecast_map[fcast.name] = fcast.data
-        ai4ts.plot.plot_prediction(df, forecast_map, ax=ax, legend=False,
-                                   title=str(p))
+        ai4ts.plot.plot_prediction(df, forecast_map, ax=ax, legend=False, title=str(p))
 
     handles, labels = axs[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower right")
