@@ -12,8 +12,8 @@ import ai4ts
 ARIMAParams = namedtuple("ARIMAParams", "ar i ma")
 
 
-def float_array_to_str(a, precision=2, sep=",", fmt="{:1.2f}"):
-    return "[{}]".format(sep.join(fmt.format(val) for val in a))
+def float_array_to_str(a, sep=",", fmt="{:1.2f}"):
+    return sep.join(fmt.format(val) for val in a)
 
 
 class ARIMAParams(object):
@@ -35,9 +35,14 @@ class ARIMAParams(object):
         return cls(d["ar"], d["i"], d["ma"])
 
     def __str__(self):
-        return "{0}, {1}, {2}".format(
-            float_array_to_str(self.ar), self.i, float_array_to_str(self.ma)
-        )
+        parts = []
+        if self.ar:
+            parts.append("φ({})".format(float_array_to_str(self.ar)))
+        if self.i > 0:
+            parts.append("{:d}".format(self.i))
+        if self.ma:
+            parts.append("θ({})".format(float_array_to_str(self.ma)))
+        return ", ".join(parts)
 
 
 def get_arg_parser():
@@ -92,6 +97,7 @@ def main():
         ai4ts.arma.forecast,
         ai4ts.lag_llama.forecast,
         ai4ts.chronos.forecast,
+        ai4ts.timesfm.forecast,
     ]
     ncols = 3
     nrows = math.ceil(len(params) / ncols)
