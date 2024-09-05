@@ -1,0 +1,31 @@
+[project]
+name = "ai4ts"
+description = "Utilities for analyzing AI time series models"
+version = "2024.09.001"
+authors = [
+    {name = "Bryce Allen", email = "ballen@anl.gov"},
+]
+keywords = ["ai", "time series"]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.9"
+dependencies = [
+  "fastparquet",
+  "statsmodels",
+  "pyarrow",
+  "huggingface_hub",
+  "pandas",
+  "numpy",
+  "matplotlib",
+  "pyyaml",
+  "timesfm",
+  "chronos @ git+https://github.com/amazon-science/chronos-forecasting.git",
+  "lag-llama @ git+https://github.com/time-series-foundation-models/lag-llama.git@main",
+]
+
+[project.urls]
+Homepage = "https://github.com/bd4/ai-science-time-series"
+
+[project.scripts]
+ai4ts-arma-gen = "ai4ts.arma:main"
+ai4ts-compare = "ai4ts.compare:main"
