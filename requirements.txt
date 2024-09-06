@@ -1,3 +1,0 @@
-fastparquet
-statsmodels
-huggingface_hub
