@@ -9,7 +9,15 @@ import yaml
 import ai4ts
 
 
-ARIMAParams = namedtuple("ARIMAParams", "ar i ma")
+MODEL_NAME_FN = {
+    "arma": ai4ts.arma.forecast,
+    "lag-llama": ai4ts.lag_llama.forecast,
+    "chronos": ai4ts.chronos.forecast,
+    "timesfm": ai4ts.timesfm.forecast,
+}
+
+
+ARIMAParams = namedtuple("ARIMAParams", "ar coeff ma")
 
 
 def float_array_to_str(a, sep=",", fmt="{:1.2f}"):
@@ -17,9 +25,9 @@ def float_array_to_str(a, sep=",", fmt="{:1.2f}"):
 
 
 class ARIMAParams(object):
-    def __init__(self, ar, i, ma):
+    def __init__(self, ar, coeff, ma):
         self.ar = ar
-        self.i = i
+        self.coeff = coeff 
         self.ma = ma
 
     @property
@@ -30,9 +38,13 @@ class ARIMAParams(object):
     def ma_order(self):
         return len(self.ma)
 
+    @property
+    def i(self):
+        return max(0, len(self.coeff) - 1)
+
     @classmethod
     def from_dict(cls, d):
-        return cls(d["ar"], d["i"], d["ma"])
+        return cls(d["ar"], d["coeff"], d["ma"])
 
     def __str__(self):
         parts = []
@@ -66,6 +78,20 @@ def get_arg_parser():
         default="cuda",
         help="Pytorch device, e.g. cpu, cuda (nvidia), mps (apple), xpu (intel)",
     )
+    parser.add_argument(
+        "--trend-poly-coeff",
+        dest="coeff",
+        nargs="*",
+        type=float,
+        help="List of coefficients for trend polynomial (constant first)",
+    )
+    parser.add_argument(
+        "--models",
+        nargs="*",
+        choices=list(MODEL_NAME_FN.keys()),
+        default=list(MODEL_NAME_FN.keys()),
+        help="List models to compare (default all)",
+    )
     return parser
 
 
@@ -91,14 +117,8 @@ def main():
         parser.error("-n/--count argument is required")
 
     if args.phi or args.theta:
-        params.append(ARIMAParams(args.phi, 0, args.theta))
+        params.append(ARIMAParams(args.phi, args.coeff, args.theta))
 
-    forecast_fns = [
-        ai4ts.arma.forecast,
-        ai4ts.lag_llama.forecast,
-        ai4ts.chronos.forecast,
-        ai4ts.timesfm.forecast,
-    ]
     ncols = 3
     nrows = math.ceil(len(params) / ncols)
 
@@ -120,12 +140,16 @@ def main():
             mean=args.mean,
             dtype=dtype,
         )
+        if p.coeff:
+            df.target = ai4ts.arma.add_trend(df.target, p.coeff)
         df_train = df.iloc[: -args.prediction_length]
 
         irow = i // ncols
         icol = i % ncols
 
         ax = axs[irow, icol]
+
+        forecast_fns = [MODEL_NAME_FN[n] for n in args.models]
 
         forecast_map = {}
         for forecast_fn in forecast_fns:
@@ -139,6 +163,7 @@ def main():
                 device=args.device,
             )
             forecast_map[fcast.name] = fcast.data
+        # import ipdb; ipdb.set_trace()
         ai4ts.plot.plot_prediction(df, forecast_map, ax=ax, legend=False, title=str(p))
 
     handles, labels = axs[0, 0].get_legend_handles_labels()

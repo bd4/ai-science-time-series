@@ -19,6 +19,7 @@ dependencies = [
   "matplotlib",
   "pyyaml",
   "timesfm",
+  "statsforecast",
   "chronos @ git+https://github.com/amazon-science/chronos-forecasting.git",
   "lag-llama @ git+https://github.com/time-series-foundation-models/lag-llama.git@main",
 ]

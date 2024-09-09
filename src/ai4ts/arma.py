@@ -2,7 +2,9 @@ import os.path
 
 import numpy as np
 import pandas as pd
+
 import statsmodels.api as sm
+import statsforecast.models as sfmodels
 
 
 SEED = 42
@@ -88,6 +90,26 @@ def arma_generate(n, phi, theta, scale=1.0, mean=0, frequency=None, dtype=None):
     return y
 
 
+def add_trend(series, coeff):
+    """
+    Add polynomial trend to series or array with specified coefficients.
+
+    :param series: numpy array or pandas Series with data to add to
+    :param coeff: polynomial coefficients, starting with constant term increasing
+                  powers to the right
+    """
+
+    coeff = np.array(coeff, dtype=series.dtype)
+    def trend_fn(x):
+        y = coeff[0]
+        for p in range(1, len(coeff)):
+            y += coeff[p] * pow(x, p)
+        return y
+
+    trend_fn_vec = np.vectorize(trend_fn)
+    return series + trend_fn_vec(np.arange(len(series), dtype=series.dtype))
+
+
 def arma_generate_df(
     n,
     phi,
@@ -169,11 +191,14 @@ def get_arg_parser():
 def forecast(
     times, history, prediction_length, ar_order, i_order, ma_order, device=None
 ):
+    if isinstance(history, pd.Series):
+        history = history.values
     order = (ar_order, i_order, ma_order)
-    model = sm.tsa.ARIMA(history, order=order)
-    model_fit = model.fit()
+    model = sfmodels.ARIMA(order=order)
+    model.fit(history)
+    prediction = model.predict(prediction_length)
     return ai4ts.model.Forecast(
-        model_fit.forecast(prediction_length), "ARIMA state space", model_fit
+        prediction["mean"], "ARIMA CSS-ML", model
     )
 
 
