@@ -27,7 +27,7 @@ def float_array_to_str(a, sep=",", fmt="{:1.2f}"):
 class ARIMAParams(object):
     def __init__(self, ar, coeff, ma):
         self.ar = ar
-        self.coeff = coeff 
+        self.coeff = coeff
         self.ma = ma
 
     @property
@@ -122,9 +122,7 @@ def main():
     ncols = 3
     nrows = math.ceil(len(params) / ncols)
 
-    fig, axs = plt.subplots(
-        nrows=nrows, ncols=ncols, sharex="col", layout="tight"
-    )
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex="col", layout="tight")
     fig.autofmt_xdate(rotation=60)
 
     trend_fig = plt.figure()

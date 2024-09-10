@@ -101,6 +101,7 @@ def get_trend(n, coeff, dtype=None):
     """
 
     coeff = np.array(coeff, dtype=dtype)
+
     def trend_fn(x):
         y = coeff[0]
         for p in range(1, len(coeff)):
@@ -198,9 +199,7 @@ def forecast(
     model = sfmodels.ARIMA(order=order)
     model.fit(history)
     prediction = model.predict(prediction_length)
-    return ai4ts.model.Forecast(
-        prediction["mean"], "ARIMA CSS-ML", model
-    )
+    return ai4ts.model.Forecast(prediction["mean"], "ARIMA CSS-ML", model)
 
 
 if __name__ == "__main__":
