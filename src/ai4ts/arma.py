@@ -90,16 +90,17 @@ def arma_generate(n, phi, theta, scale=1.0, mean=0, frequency=None, dtype=None):
     return y
 
 
-def add_trend(series, coeff):
+def get_trend(n, coeff, dtype=None):
     """
-    Add polynomial trend to series or array with specified coefficients.
+    Create a polynomial trend array with specified coefficients.
 
-    :param series: numpy array or pandas Series with data to add to
+    :param n: length of trend array
     :param coeff: polynomial coefficients, starting with constant term increasing
                   powers to the right
+    :param dtype: optional numpy dtype
     """
 
-    coeff = np.array(coeff, dtype=series.dtype)
+    coeff = np.array(coeff, dtype=dtype)
     def trend_fn(x):
         y = coeff[0]
         for p in range(1, len(coeff)):
@@ -107,7 +108,7 @@ def add_trend(series, coeff):
         return y
 
     trend_fn_vec = np.vectorize(trend_fn)
-    return series + trend_fn_vec(np.arange(len(series), dtype=series.dtype))
+    return trend_fn_vec(np.arange(n, dtype=dtype))
 
 
 def arma_generate_df(

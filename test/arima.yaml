@@ -6,7 +6,7 @@ test_cases:
     coeff: [1, 0.05]
     ma: []
   - ar: [0.6]
-    coeff: [1, 0.05, 0.004]
+    coeff: [1, 0.01, 0.0003]
     ma: []
   - ar: [0.75, 0.25]
     coeff: []

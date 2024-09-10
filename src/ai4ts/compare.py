@@ -123,9 +123,12 @@ def main():
     nrows = math.ceil(len(params) / ncols)
 
     fig, axs = plt.subplots(
-        nrows=nrows, ncols=ncols, sharex="col", layout="constrained"
+        nrows=nrows, ncols=ncols, sharex="col", layout="tight"
     )
     fig.autofmt_xdate(rotation=60)
+
+    trend_fig = plt.figure()
+    trend_axs = trend_fig.subplots(nrows=nrows, ncols=ncols)
 
     # Note: lag-llama requires float32 input data
     dtype = np.float32
@@ -141,7 +144,11 @@ def main():
             dtype=dtype,
         )
         if p.coeff:
-            df.target = ai4ts.arma.add_trend(df.target, p.coeff)
+            trend = ai4ts.arma.get_trend(len(df.target), p.coeff)
+            trend_ax = trend_axs[irow, icol]
+            trend_ax.plot(trend)
+            trend_ax.set_title(",".join(str(x) for x in p.coeff))
+            df.target += trend
         df_train = df.iloc[: -args.prediction_length]
 
         irow = i // ncols
