@@ -12,6 +12,7 @@ class ChronosModel(ai4ts.model.TimeSeriesModel):
     def fit(self, times, history, max_prediction_length, **kwargs):
         import torch
         from chronos import ChronosPipeline
+
         device = kwargs.get("device", "cuda")
         self.model = ChronosPipeline.from_pretrained(
             "amazon/chronos-t5-tiny",
