@@ -5,41 +5,31 @@ import os.path
 
 import numpy as np
 
-from matplotlib import pyplot as plt
-import matplotlib.dates as mdates
-
-import torch
-from gluonts.evaluation import make_evaluation_predictions, Evaluator
-from gluonts.dataset.repository.datasets import get_dataset
-
-from gluonts.dataset.pandas import PandasDataset
-import pandas as pd
-
-import pandas as pd  # requires: pip install pandas
-import torch
-from chronos import ChronosPipeline
-
 import ai4ts
 
 
-def forecast(
-    times, history, prediction_length, ar_order, i_order, ma_order, device="cuda"
-):
-    pipeline = ChronosPipeline.from_pretrained(
-        "amazon/chronos-t5-tiny",
-        device_map=device,
-        torch_dtype=torch.bfloat16,
-    )
+class ChronosModel(ai4ts.model.TimeSeriesModel):
+    def fit(self, times, history, max_prediction_length, **kwargs):
+        import torch
+        from chronos import ChronosPipeline
+        device = kwargs.get("device", "cuda")
+        self.model = ChronosPipeline.from_pretrained(
+            "amazon/chronos-t5-tiny",
+            device_map=device,
+            torch_dtype=torch.bfloat16,
+        )
+        self.history = torch.tensor(history)
 
-    # context must be either a 1D tensor, a list of 1D tensors,
-    # or a left-padded 2D tensor with batch as the first dimension
-    # forecast shape: [num_series, num_samples, prediction_length]
-    forecast = pipeline.predict(
-        context=torch.tensor(history),
-        prediction_length=prediction_length,
-        num_samples=100,
-    )
+    def predict(self, prediction_length):
+        # context must be either a 1D tensor, a list of 1D tensors,
+        # or a left-padded 2D tensor with batch as the first dimension
+        # forecast shape: [num_series, num_samples, prediction_length]
+        forecast = self.model.predict(
+            context=self.history,
+            prediction_length=prediction_length,
+            num_samples=100,
+        )
 
-    forecast_mean = forecast[0].mean(0)
+        forecast_mean = forecast[0].mean(0)
 
-    return ai4ts.model.Forecast(forecast_mean, "chronos", forecast)
+        return ai4ts.model.Forecast(forecast_mean, "chronos", forecast)

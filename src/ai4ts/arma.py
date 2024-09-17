@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 
 import statsmodels.api as sm
-import statsforecast.models as sfmodels
 
 
 SEED = 42
@@ -190,16 +189,38 @@ def get_arg_parser():
     return parser
 
 
-def forecast(
-    times, history, prediction_length, ar_order, i_order, ma_order, device=None
-):
-    if isinstance(history, pd.Series):
-        history = history.values
-    order = (ar_order, i_order, ma_order)
-    model = sfmodels.ARIMA(order=order)
-    model.fit(history)
-    prediction = model.predict(prediction_length)
-    return ai4ts.model.Forecast(prediction["mean"], "ARIMA CSS-ML", model)
+class ARIMAModel(ai4ts.model.TimeSeriesModel):
+    def fit(self, times, history, max_prediction_length, **kwargs):
+        import statsforecast.models as sfmodels
+
+        if isinstance(history, pd.Series):
+            history = history.values
+        self.order = kwargs.get("order")
+        if self.order is None:
+            ar_order = kwargs.get("ar_order", 0)
+            i_order = kwargs.get("i_order", 0)
+            ma_order = kwargs.get("ma_order", 0)
+            self.order = (ar_order, i_order, ma_order)
+        self.model = sfmodels.ARIMA(order=self.order)
+        self.model.fit(history)
+
+    def predict(self, prediction_length):
+        prediction = self.model.predict(prediction_length)
+        return ai4ts.model.Forecast(prediction["mean"], "ARIMA CSS-ML", self.model)
+
+
+class AutoARIMAModel(ai4ts.model.TimeSeriesModel):
+    def fit(self, times, history, max_prediction_length, **kwargs):
+        import statsforecast.models as sfmodels
+
+        if isinstance(history, pd.Series):
+            history = history.values
+        self.model = sfmodels.AutoARIMA(seasonal=False)
+        self.model.fit(history)
+
+    def predict(self, prediction_length):
+        prediction = self.model.predict(prediction_length)
+        return ai4ts.model.Forecast(prediction["mean"], "Auto-ARIMA", self.model)
 
 
 if __name__ == "__main__":

@@ -7,13 +7,18 @@ import numpy as np
 import yaml
 
 import ai4ts
+import ai4ts.arma
+import ai4ts.lag_llama
+import ai4ts.chronos
+import ai4ts.timesfm
 
 
-MODEL_NAME_FN = {
-    "arma": ai4ts.arma.forecast,
-    "lag-llama": ai4ts.lag_llama.forecast,
-    "chronos": ai4ts.chronos.forecast,
-    "timesfm": ai4ts.timesfm.forecast,
+MODEL_NAME_CLASS = {
+    "arma": ai4ts.arma.ARIMAModel,
+    "auto-arma": ai4ts.arma.AutoARIMAModel,
+    "lag-llama": ai4ts.lag_llama.LagLlamaModel,
+    "chronos": ai4ts.chronos.ChronosModel,
+    "timesfm": ai4ts.timesfm.TimesFmModel,
 }
 
 
@@ -88,8 +93,8 @@ def get_arg_parser():
     parser.add_argument(
         "--models",
         nargs="*",
-        choices=list(MODEL_NAME_FN.keys()),
-        default=list(MODEL_NAME_FN.keys()),
+        choices=list(MODEL_NAME_CLASS.keys()),
+        default=list(MODEL_NAME_CLASS.keys()),
         help="List models to compare (default all)",
     )
     return parser
@@ -154,19 +159,21 @@ def main():
 
         ax = axs[irow, icol]
 
-        forecast_fns = [MODEL_NAME_FN[n] for n in args.models]
+        model_classes = [MODEL_NAME_CLASS[n] for n in args.models]
 
         forecast_map = {}
-        for forecast_fn in forecast_fns:
-            fcast = forecast_fn(
+        for mclass in model_classes:
+            m = mclass()
+            m.fit(
                 df_train["ds"],
                 df_train["target"],
                 args.prediction_length,
-                p.ar_order,
-                p.i,
-                p.ma_order,
+                ar_order=p.ar_order,
+                i_order=p.i,
+                ma_order=p.ma_order,
                 device=args.device,
             )
+            fcast = m.predict(args.prediction_length)
             forecast_map[fcast.name] = fcast.data
         # import ipdb; ipdb.set_trace()
         ai4ts.plot.plot_prediction(df, forecast_map, ax=ax, legend=False, title=str(p))
