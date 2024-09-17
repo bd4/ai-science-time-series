@@ -142,7 +142,7 @@ def main():
             dtype=dtype,
         )
         if p.coeff:
-            trend = ai4ts.arma.get_trend(len(df.target), p.coeff)
+            trend = ai4ts.arma.get_trend(len(df.target), p.coeff, dtype=dtype)
             trend_ax = trend_axs[irow, icol]
             trend_ax.plot(trend)
             trend_ax.set_title(",".join(str(x) for x in p.coeff))

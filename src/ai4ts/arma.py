@@ -108,7 +108,7 @@ def get_trend(n, coeff, dtype=None):
             y += coeff[p] * pow(x, p)
         return y
 
-    trend_fn_vec = np.vectorize(trend_fn)
+    trend_fn_vec = np.vectorize(trend_fn, otypes=[dtype])
     return trend_fn_vec(np.arange(n, dtype=dtype))
 
 
