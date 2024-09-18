@@ -1,6 +1,7 @@
 import os.path
 from collections import namedtuple
 import math
+import importlib
 
 from matplotlib import pyplot as plt
 import numpy as np
@@ -8,18 +9,21 @@ import yaml
 
 import ai4ts
 import ai4ts.arma
-import ai4ts.lag_llama
-import ai4ts.chronos
-import ai4ts.timesfm
 
 
 MODEL_NAME_CLASS = {
-    "arma": ai4ts.arma.ARIMAModel,
-    "auto-arma": ai4ts.arma.AutoARIMAModel,
-    "lag-llama": ai4ts.lag_llama.LagLlamaModel,
-    "chronos": ai4ts.chronos.ChronosModel,
-    "timesfm": ai4ts.timesfm.TimesFmModel,
+    "arma": "ai4ts.arma.ARIMAModel",
+    "auto-arma": "ai4ts.arma.AutoARIMAModel",
+    "lag-llama": "ai4ts.lag_llama.LagLlamaModel",
+    "chronos": "ai4ts.chronos.ChronosModel",
+    "timesfm": "ai4ts.timesfm.TimesFmModel",
 }
+
+
+def _get_model_class(dotted_name):
+    module_name, class_name = dotted_name.rsplit(".", 1)
+    mod = importlib.import_module(module_name)
+    return getattr(mod, class_name)
 
 
 ARIMAParams = namedtuple("ARIMAParams", "ar coeff ma")
@@ -159,10 +163,11 @@ def main():
 
         ax = axs[irow, icol]
 
-        model_classes = [MODEL_NAME_CLASS[n] for n in args.models]
+        model_class_names = [MODEL_NAME_CLASS[n] for n in args.models]
 
         forecast_map = {}
-        for mclass in model_classes:
+        for class_name in model_class_names:
+            mclass = _get_model_class(class_name)
             m = mclass()
             m.fit(
                 df_train["ds"],

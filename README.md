@@ -1,6 +1,6 @@
 # Setup
 
-Create virtual environment:
+Create virtual environment, using python 3.10 or greater:
 ```
 cd path/to/time-series-ai-for-science
 python -m venv env
@@ -9,12 +9,21 @@ source env/bin/activate
 
 Install ai4ts dependencies and module to environment:
 ```
-pip install -e .
+pip install -e ".[all]"
 ```
-Using the editable option of pip is does not create a copy so changes will be
-reflected immediately without the need to re-install.
 
-Note that this could take a long time to run, as there are a lot of dependencies.
+This will install all ml dependencies which can take over 8GB in space and a long time
+to download. If doing minimal testing on a laptop without a GPU, you can run the following
+instead:
+```
+pip install -e ".[lint]"
+```
+
+This will install statsforecast and the linter (useful for development) and none of
+the ml libraries.
+
+Using the editable ("-e") option of pip is useful for development as it does not create
+a copy, so any changes are reflected immediately without the need to reinstall.
 
 # Run
 
@@ -31,3 +40,9 @@ ai4ts-compare -l 24 -f H -i test/arima.yaml
 New ARMA parameters can be added in `test/arima.yaml`. The `-l` option specifies the number
 of data points to forecast, and the `-f` specifies the frequency to overlay on the data,
 "H" is for hourly.
+
+If running on a machine without GPU using the minimal install, you can compare only
+the traditional non-ml models:
+```
+ai4ts-compare -l 24 -f H -i test/arima.yaml --models arma auto-arma
+```

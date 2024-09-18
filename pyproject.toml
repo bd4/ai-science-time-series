@@ -11,18 +11,28 @@ license = { file = "LICENSE" }
 requires-python = ">=3.9"
 dependencies = [
   "fastparquet",
-  "statsmodels",
-  "pyarrow",
   "huggingface_hub",
-  "pandas",
-  "numpy",
   "matplotlib",
+  "numpy",
+  "pandas",
+  "pyarrow",
   "pyyaml",
-  "timesfm",
   "statsforecast",
+  "statsmodels",
+  "ujson",
+]
+
+[project.optional-dependencies]
+chronos = [
   "chronos @ git+https://github.com/amazon-science/chronos-forecasting.git",
+]
+lag-llama = [
   "lag-llama @ git+https://github.com/time-series-foundation-models/lag-llama.git@main",
 ]
+timesfm = ["timesfm"]
+lint = ["black"]
+ml = ["ai4ts[chronos,lag-llama,timesfm]"]
+all = ["ai4ts[chronos,lag-llama,timesfm,lint]"]
 
 [project.urls]
 Homepage = "https://github.com/bd4/ai-science-time-series"
