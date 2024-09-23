@@ -34,7 +34,7 @@ def write_df(df, output_file, parser=None):
         df.to_pickle(output_file)
     else:
         msg = "Unknown output format for pandas: '%s'" % ext
-        if parsier is not None:
+        if parser is not None:
             parser.error(msg)
         else:
             raise ValueError(msg)

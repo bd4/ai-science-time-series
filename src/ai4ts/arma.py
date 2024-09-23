@@ -5,10 +5,10 @@ import pandas as pd
 
 import statsmodels.api as sm
 
+import ai4ts
+
 
 SEED = 42
-
-import ai4ts
 
 
 def main():

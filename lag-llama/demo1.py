@@ -6,11 +6,7 @@ from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
 
 import torch
-from gluonts.evaluation import make_evaluation_predictions, Evaluator
-from gluonts.dataset.repository.datasets import get_dataset
-
-from gluonts.dataset.pandas import PandasDataset
-import pandas as pd
+from gluonts.evaluation import make_evaluation_predictions
 
 from lag_llama.gluon.estimator import LagLlamaEstimator
 
@@ -78,7 +74,7 @@ def get_ts_dataset():
     # Set numerical columns as float32
     for col in df.columns:
         # Check if column is not of string type
-        if df[col].dtype != "object" and pd.api.types.is_string_dtype(df[col]) == False:
+        if df[col].dtype != "object" and not pd.api.types.is_string_dtype(df[col]):
             df[col] = df[col].astype("float32")
 
     # Create the Pandas

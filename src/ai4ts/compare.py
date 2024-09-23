@@ -1,5 +1,4 @@
 import os.path
-from collections import namedtuple
 import math
 import importlib
 
@@ -24,9 +23,6 @@ def _get_model_class(dotted_name):
     module_name, class_name = dotted_name.rsplit(".", 1)
     mod = importlib.import_module(module_name)
     return getattr(mod, class_name)
-
-
-ARIMAParams = namedtuple("ARIMAParams", "ar coeff ma")
 
 
 def float_array_to_str(a, sep=",", fmt="{:1.2f}"):
@@ -150,6 +146,11 @@ def main():
             mean=args.mean,
             dtype=dtype,
         )
+
+        irow = i // ncols
+        icol = i % ncols
+        ax = axs[irow, icol]
+
         if p.coeff:
             trend = ai4ts.arma.get_trend(len(df.target), p.coeff, dtype=dtype)
             trend_ax = trend_axs[irow, icol]
@@ -157,11 +158,6 @@ def main():
             trend_ax.set_title(",".join(str(x) for x in p.coeff))
             df.target += trend
         df_train = df.iloc[: -args.prediction_length]
-
-        irow = i // ncols
-        icol = i % ncols
-
-        ax = axs[irow, icol]
 
         model_class_names = [MODEL_NAME_CLASS[n] for n in args.models]
 

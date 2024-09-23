@@ -1,30 +1,19 @@
 #!/usr/bin/env python3
 
-from itertools import islice
 import os.path
 
 import numpy as np
 
 from matplotlib import pyplot as plt
-import matplotlib.dates as mdates
 
 import torch
-from gluonts.evaluation import make_evaluation_predictions, Evaluator
-from gluonts.dataset.repository.datasets import get_dataset
 
-from gluonts.dataset.pandas import PandasDataset
-import pandas as pd
-
-import pandas as pd  # requires: pip install pandas
-import torch
 from chronos import ChronosPipeline
 
 
 def main(inpath, outpath, prediction_length=24):
     values = np.loadtxt(inpath, dtype=np.float32)
     train = values[:-prediction_length]
-    df = pd.DataFrame(values)
-    n_cycles = len(df) / prediction_length
 
     pipeline = ChronosPipeline.from_pretrained(
         "amazon/chronos-t5-tiny",

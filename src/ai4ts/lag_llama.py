@@ -1,6 +1,3 @@
-from itertools import islice
-import os.path
-
 import pandas as pd
 
 import ai4ts
@@ -25,15 +22,6 @@ class LagLlamaModel(ai4ts.model.TimeSeriesModel):
 
         context_length = kwargs.get("context_length", 32)
         estimator_args = ckpt["hyper_parameters"]["model_kwargs"]
-
-        rope_scaling_arguments = {
-            "type": "linear",
-            "factor": max(
-                1.0,
-                (context_length + max_prediction_length)
-                / estimator_args["context_length"],
-            ),
-        }
 
         estimator = LagLlamaEstimator(
             ckpt_path=ckpt_path,
@@ -65,7 +53,6 @@ class LagLlamaModel(ai4ts.model.TimeSeriesModel):
             dataset=self.history, predictor=self.model, num_samples=self.num_samples
         )
         forecasts = list(forecast_it)
-        tss = list(ts_it)
 
         return ai4ts.model.Forecast(
             forecasts[0].mean, name="lag-llama", model=forecasts[0]

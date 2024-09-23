@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 
-from itertools import islice
 import os.path
 
 import numpy as np
-
-from matplotlib import pyplot as plt
-import matplotlib.dates as mdates
 
 import torch
 

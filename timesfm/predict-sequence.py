@@ -1,26 +1,22 @@
 #!/usr/bin/env python3
 
-from itertools import islice
 import os.path
 
 import numpy as np
 import pandas as pd
 
 from matplotlib import pyplot as plt
-import matplotlib.dates as mdates
 
 import timesfm
 
 
 def main(inpath, outpath, prediction_length=24, backend="gpu"):
     values = np.loadtxt(inpath, dtype=np.float32)
-    train = values[:-prediction_length]
     dates = pd.date_range("2024-01-01", periods=len(values), freq="1H")
     df = pd.DataFrame({"y": values, "ds": dates})
     df["unique_id"] = 0
     print("cols", df.columns)
     df_train = df[:-prediction_length]
-    n_cycles = len(df) / prediction_length
 
     tfm = timesfm.TimesFm(
         context_len=512,
@@ -39,7 +35,6 @@ def main(inpath, outpath, prediction_length=24, backend="gpu"):
     )
 
     history_tail = df[-min(4 * prediction_length, len(values)) :]
-    forecast_index = range(len(history_tail) - prediction_length, len(history_tail))
 
     plt.figure(figsize=(8, 4))
     plt.plot(history_tail, color="royalblue", label="historical data")

@@ -1,16 +1,6 @@
 #!/usr/bin/env python3
 
 import math
-import os.path
-
-import numpy as np
-import pandas as pd
-
-from matplotlib import pyplot as plt
-import matplotlib.dates as mdates
-
-from statsmodels.graphics import tsaplots
-import statsmodels.tsa.api as tsa
 
 import ai4ts
 

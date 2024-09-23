@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 
-from itertools import islice
-import os.path
-
-import numpy as np
-
 import ai4ts
 
 
