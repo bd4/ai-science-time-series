@@ -17,3 +17,9 @@ jobs:
         run: pip install -e .
       - name: ai4ts-compare
         run: ai4ts-compare -i test/arima.yaml -l 24 -f h --models arma auto-arma -o compare.pdf
+      - name: Upload output as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: compare.pdf
+          path: compare.pdf
+          if-no-files-found: error
