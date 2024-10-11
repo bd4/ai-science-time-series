@@ -4,6 +4,7 @@ import importlib
 
 from matplotlib import pyplot as plt
 import numpy as np
+import torch
 import yaml
 
 import ai4ts
@@ -20,7 +21,15 @@ MODEL_NAME_CLASS = {
 
 
 def mean_absolute_error(a, b):
-    return np.mean(np.absolute(a - b))
+    """
+    Hack to make work with numpy and/or torch
+    """
+    if isinstance(a, np.ndarray):
+        return np.mean(np.absolute(a - b))
+    else:
+        import torch
+        b = torch.tensor(b)
+        return torch.mean(torch.abs(a - b))
 
 
 def _get_model_class(dotted_name):
@@ -182,7 +191,7 @@ def main():
             fcast = m.predict(args.prediction_length)
             forecast_map[fcast.name] = fcast.data
             mae = mean_absolute_error(
-                fcast.data, df.iloc[-args.prediction_length :]["target"]
+                fcast.data, df.iloc[-args.prediction_length :]["target"].values
             )
             print(f"{fcast.name:15s}{mae:.3f}")
         print()
