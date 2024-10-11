@@ -19,6 +19,10 @@ MODEL_NAME_CLASS = {
 }
 
 
+def mean_absolute_error(a, b):
+    return np.mean(np.absolute(a - b))
+
+
 def _get_model_class(dotted_name):
     module_name, class_name = dotted_name.rsplit(".", 1)
     mod = importlib.import_module(module_name)
@@ -161,6 +165,7 @@ def main():
 
         model_class_names = [MODEL_NAME_CLASS[n] for n in args.models]
 
+        print(f"=== {p} ===")
         forecast_map = {}
         for class_name in model_class_names:
             mclass = _get_model_class(class_name)
@@ -176,6 +181,11 @@ def main():
             )
             fcast = m.predict(args.prediction_length)
             forecast_map[fcast.name] = fcast.data
+            mae = mean_absolute_error(
+                fcast.data, df.iloc[-args.prediction_length :]["target"]
+            )
+            print(f"{fcast.name:15s}{mae:.3f}")
+        print()
         # import ipdb; ipdb.set_trace()
         ai4ts.plot.plot_prediction(df, forecast_map, ax=ax, legend=False, title=str(p))
 

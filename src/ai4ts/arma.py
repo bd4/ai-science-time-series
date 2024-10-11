@@ -142,7 +142,7 @@ def arma_generate_df(
       frequency code
     """
     y = arma_generate(n, phi, theta, scale=scale, mean=mean, dtype=dtype)
-    dates = pd.date_range(start_date, freq=frequency, periods=n)
+    dates = pd.date_range(start_date, freq=frequency.lower(), periods=n)
     df = pd.DataFrame({time_column: dates, data_column: y})
     df["frequency"] = frequency
     return df
