@@ -28,6 +28,7 @@ def mean_absolute_error(a, b):
         return np.mean(np.absolute(a - b))
     else:
         import torch
+
         b = torch.tensor(b)
         return torch.mean(torch.abs(a - b))
 
