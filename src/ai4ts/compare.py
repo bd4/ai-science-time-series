@@ -29,7 +29,7 @@ def mean_absolute_error(a, b):
     else:
         import torch
 
-        b = torch.tensor(b)
+        a = torch.tensor(a)
         return torch.mean(torch.abs(a - b))
 
 

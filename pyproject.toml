@@ -8,12 +8,13 @@ authors = [
 keywords = ["ai", "time series"]
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
   "fastparquet",
   "huggingface_hub",
   "matplotlib",
-  "numpy",
+  "numpy==1.26.4",
+  "torch==2.3.1",
   "pandas",
   "pyarrow",
   "pyyaml",
