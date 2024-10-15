@@ -17,6 +17,8 @@ MODEL_NAME_CLASS = {
     "lag-llama": "ai4ts.lag_llama.LagLlamaModel",
     "chronos": "ai4ts.chronos.ChronosModel",
     "timesfm": "ai4ts.timesfm.TimesFmModel",
+    "simplelinear": "ai4ts.neuralnet.SimpleLinearModel",
+    "simplenn": "ai4ts.neuralnet.SimpleNNModel",
 }
 
 
