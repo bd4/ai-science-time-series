@@ -96,6 +96,77 @@ class SimpleLinearRegression(object):
         return f"SimpleLinearRegression({self.layer1} + {self.bias})"
 
 
+class RNNRegression(object):
+    def __init__(self, lag, batch_size, lr, n_hidden=10, sigma=0.01, grad_clip=None):
+        self.lag = lag
+        self.batch_size = batch_size
+        self.lr = lr
+        self.sigma = sigma
+        self.grad_clip = grad_clip
+        self.n_hidden = n_hidden
+        # Note: input is (batch_size, lag = seq length), i.e. each sequence is a row
+        # at each step have a vector of (batch_size, 1)
+        self.W_xh = torch.normal(0, sigma, (1, n_hidden))
+        self.W_xh.requires_grad_()
+        # state is (batch_size, n_hidden)
+        self.W_hh = torch.normal(0, sigma, (n_hidden, n_hidden))
+        self.W_hh.requires_grad_()
+        self.b_h = torch.randn(n_hidden) * sigma
+        self.b_h.requires_grad_()
+        self.params = (self.W_xh, self.W_hh, self.b_h)
+        self._init_state()
+
+    def _init_state(self):
+        self.state = torch.zeros((self.batch_size, self.n_hidden))
+
+    def predict(self, indep, reset_state=False):
+        # ipdb.set_trace()
+        if reset_state:
+            self._init_state()
+        # ipdb.set_trace()
+        for i in range(indep.shape[1]):
+            self.state = F.tanh(
+                indep[:, i : i + 1] @ self.W_xh + self.state @ self.W_hh + self.b_h
+            )
+        return self.state[:, -1]
+
+    def get_loss(self, independent, dependent):
+        return mean_sq_error(self.predict(independent).t(), dependent)
+
+    def _update_coeffs(self):
+        for layer in self.params:
+            grad = layer.grad
+            if self.grad_clip is not None:
+                # TODO: clip on all params together?
+                grad_norm = torch.sqrt(torch.sum(grad**2))
+                if grad_norm > self.grad_clip:
+                    grad = grad * self.grad_clip / grad_norm
+            layer.sub_(grad * self.lr)
+            layer.grad.zero_()
+
+    def _get_batch(self, inputs, outputs):
+        assert inputs.shape[0] == outputs.shape[0]
+        idx = torch.randperm(inputs.shape[0])[: self.batch_size]
+        return (inputs[idx], outputs[idx])
+
+    def _step(self, independent, dependent):
+        loss = self.get_loss(independent, torch.t(dependent))
+        loss.backward()
+        with torch.no_grad():
+            self._update_coeffs()
+        # print(f"{loss:.3f}", end="; ")
+
+    def train(self, xs, y, epochs=30):
+        # import ipdb; ipdb.set_trace()
+        for i in range(epochs):
+            self._init_state()
+            batch_in, batch_out = self._get_batch(xs, y)
+            self._step(batch_in, batch_out)
+
+    def __repr__(self):
+        return f"RNNRegression({self.n_hidden})"
+
+
 class SimpleNNRegression(object):
     def __init__(self, lag, batch_size, lr, n_hidden=10, sigma=0.01, grad_clip=None):
         self.lag = lag
@@ -108,14 +179,14 @@ class SimpleNNRegression(object):
         self.layer1.requires_grad_()
         self.layer2 = torch.normal(0, sigma, (n_hidden, 1))
         self.layer2.requires_grad_()
-        self.bias = torch.ones(1) / 2.0
+        self.bias = torch.randn(n_hidden) * sigma
         self.bias.requires_grad_()
         self.best_loss = None
         self.best_params = None
 
     def predict(self, indep):
-        res = F.relu(torch.matmul(indep, self.layer1))
-        res = torch.matmul(res, self.layer2) + self.bias
+        res = F.relu(torch.matmul(indep, self.layer1) + self.bias)
+        res = torch.matmul(res, self.layer2)
         return res
         # res = F.relu(indep @ self.layer1)
         # res = res @ self.layer2 + self.bias
@@ -221,10 +292,10 @@ class SimpleLinearModel(ai4ts.model.TimeSeriesModel):
 
     def predict(self, prediction_length):
         prediction = np.ndarray(prediction_length)
-        indep = torch.tensor(self.indep)
+        indep = torch.tensor(self.indep).reshape(1, len(self.indep))
         with torch.no_grad():
             for i in range(prediction_length):
-                prediction[i] = self.model.predict(indep)
+                prediction[i] = self.model.predict(indep)[0]
                 indep = indep.roll(1)
                 indep[-1] = prediction[i]
         if self.undiff_base is not None:
@@ -232,11 +303,18 @@ class SimpleLinearModel(ai4ts.model.TimeSeriesModel):
                 self.undiff_base, prediction[i] = undiff_new_base(
                     self.undiff_base, prediction[i]
                 )
-        return ai4ts.model.Forecast(prediction, self.model_class.__name__, self.model)
+        return ai4ts.model.Forecast(prediction, self.model_name(), self.model)
+
+    def model_name(self):
+        return self.model_class.__name__[: -len("Regression")]
 
 
 class SimpleNNModel(SimpleLinearModel):
     model_class = SimpleNNRegression
+
+
+class RNNModel(SimpleLinearModel):
+    model_class = RNNRegression
 
 
 if __name__ == "__main__222":

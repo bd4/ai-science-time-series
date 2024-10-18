@@ -19,6 +19,7 @@ MODEL_NAME_CLASS = {
     "timesfm": "ai4ts.timesfm.TimesFmModel",
     "simplelinear": "ai4ts.neuralnet.SimpleLinearModel",
     "simplenn": "ai4ts.neuralnet.SimpleNNModel",
+    "rnn": "ai4ts.neuralnet.RNNModel",
 }
 
 
