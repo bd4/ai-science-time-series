@@ -4,11 +4,12 @@ import importlib
 
 from matplotlib import pyplot as plt
 import numpy as np
-import torch
 import yaml
 
 import ai4ts
 import ai4ts.arma
+
+import ipdb
 
 
 MODEL_NAME_CLASS = {
@@ -114,6 +115,14 @@ def get_arg_parser():
         default=list(MODEL_NAME_CLASS.keys()),
         help="List models to compare (default all)",
     )
+    parser.add_argument(
+        "--datasets",
+        nargs="*",
+        choices=list(ai4ts.data.DATASETS.keys()),
+        default=list(ai4ts.data.DATASETS.keys()),
+        help="List datasets to fit (default all)",
+    )
+
     return parser
 
 
@@ -141,14 +150,10 @@ def main():
     if args.phi or args.theta:
         params.append(ARIMAParams(args.phi, args.coeff, args.theta))
 
-    ncols = 3
-    nrows = math.ceil(len(params) / ncols)
+    # trend_fig = plt.figure()
+    # trend_axs = trend_fig.subplots(nrows=nrows, ncols=ncols)
 
-    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex="col", layout="tight")
-    fig.autofmt_xdate(rotation=60)
-
-    trend_fig = plt.figure()
-    trend_axs = trend_fig.subplots(nrows=nrows, ncols=ncols)
+    datasets = []
 
     # Note: lag-llama requires float32 input data
     dtype = np.float32
@@ -164,21 +169,36 @@ def main():
             dtype=dtype,
         )
 
-        irow = i // ncols
-        icol = i % ncols
-        ax = axs[irow, icol]
-
         if p.coeff:
             trend = ai4ts.arma.get_trend(len(df.target), p.coeff, dtype=dtype)
-            trend_ax = trend_axs[irow, icol]
-            trend_ax.plot(trend)
-            trend_ax.set_title(",".join(str(x) for x in p.coeff))
             df.target += trend
+
+        datasets.append(ai4ts.data.SimpleTimeseries(df, str(p)))
+
+    for ds_name in args.datasets:
+        datasets.append(ai4ts.data.DATASETS[ds_name])
+
+    ncols = 3
+    nrows = math.ceil(len(datasets) / ncols)
+
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex="col", layout="tight")
+    fig.autofmt_xdate(rotation=60)
+    ipdb.set_trace()
+
+    for i, dataset in enumerate(datasets):
+        if nrows > 1:
+            irow = i // ncols
+            icol = i % ncols
+            ax = axs[irow, icol]
+        else:
+            ax = axs[i]
+
+        df = dataset.get_transformed_data()
         df_train = df.iloc[: -args.prediction_length]
 
         model_class_names = [MODEL_NAME_CLASS[n] for n in args.models]
 
-        print(f"=== {p} ===")
+        print(f"=== {dataset.get_description()} ===")
         forecast_map = {}
         for class_name in model_class_names:
             mclass = _get_model_class(class_name)
@@ -187,9 +207,9 @@ def main():
                 df_train["ds"],
                 df_train["target"],
                 args.prediction_length,
-                ar_order=p.ar_order,
-                i_order=p.i,
-                ma_order=p.ma_order,
+                ar_order=dataset.ar_order,
+                i_order=dataset.i,
+                ma_order=dataset.ma_order,
                 device=args.device,
             )
             fcast = m.predict(args.prediction_length)
@@ -200,9 +220,14 @@ def main():
             print(f"{fcast.name:15s}{mae:.3f}")
         print()
         # import ipdb; ipdb.set_trace()
-        ai4ts.plot.plot_prediction(df, forecast_map, ax=ax, legend=False, title=str(p))
+        ai4ts.plot.plot_prediction(
+            df, forecast_map, ax=ax, legend=False, title=dataset.get_description()
+        )
 
-    handles, labels = axs[0, 0].get_legend_handles_labels()
+    if nrows > 1:
+        handles, labels = axs[0, 0].get_legend_handles_labels()
+    else:
+        handles, labels = axs[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="lower right")
 
     if args.output_file:

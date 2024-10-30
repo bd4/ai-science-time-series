@@ -36,7 +36,9 @@ def mean_sq_error(predictions, actual):
 
 
 class SimpleLinearRegression(object):
-    def __init__(self, lag, batch_size, lr, sigma=0.01, grad_clip=None):
+    def __init__(
+        self, lag, batch_size, lr, sigma=0.01, grad_clip=None
+    ):
         self.lag = lag
         self.lr = lr
         self.sigma = sigma
@@ -97,7 +99,15 @@ class SimpleLinearRegression(object):
 
 
 class RNNRegression(object):
-    def __init__(self, lag, batch_size, lr, n_hidden=10, sigma=0.01, grad_clip=None):
+    def __init__(
+        self,
+        lag,
+        batch_size,
+        lr,
+        n_hidden=10,
+        sigma=0.01,
+        grad_clip=None,
+    ):
         self.lag = lag
         self.batch_size = batch_size
         self.lr = lr
@@ -168,7 +178,15 @@ class RNNRegression(object):
 
 
 class SimpleNNRegression(object):
-    def __init__(self, lag, batch_size, lr, n_hidden=10, sigma=0.01, grad_clip=None):
+    def __init__(
+        self,
+        lag,
+        batch_size,
+        lr,
+        n_hidden=10,
+        sigma=0.01,
+        grad_clip=None,
+    ):
         self.lag = lag
         self.lr = lr
         self.sigma = sigma
@@ -185,6 +203,9 @@ class SimpleNNRegression(object):
         self.best_params = None
 
     def predict(self, indep):
+        """
+        Given vector of length leg, predict next element of series
+        """
         res = F.relu(torch.matmul(indep, self.layer1) + self.bias)
         res = torch.matmul(res, self.layer2)
         return res
@@ -318,8 +339,8 @@ class RNNModel(SimpleLinearModel):
 
 
 if __name__ == "__main__222":
-    # series = np.array(range(100), dtype=np.float32)
-    series = np.random.normal(0, 0.15, 1000).astype(np.float32)
+    # series = np.array(range(100), dtype=torch.float32)
+    series = np.random.normal(0, 0.15, 1000).astype(torch.float32)
     lag = 1
     m = SimpleLinearModel(SimpleLinearRegression)
     m.fit(None, series, 2, order=(lag, 0, 0))
@@ -333,7 +354,7 @@ if __name__ == "__main__222":
     print(fcast.data)
     print(repr(fcast.model))
 
-    series2 = np.ones(1000, dtype=np.float32) * 17
+    series2 = np.ones(1000) * 17
     lag = 1
     m2 = SimpleLinearModel(SimpleLinearRegression)
     m2.fit(None, series2, 2, order=(lag, 0, 0))

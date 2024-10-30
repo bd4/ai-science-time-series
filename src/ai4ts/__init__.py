@@ -1,6 +1,6 @@
 import os.path
 
-from . import io, plot, model
+from . import io, plot, model, data
 
 
 def get_model_path(fname):
