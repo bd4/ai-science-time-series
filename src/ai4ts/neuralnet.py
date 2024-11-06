@@ -36,9 +36,7 @@ def mean_sq_error(predictions, actual):
 
 
 class SimpleLinearRegression(object):
-    def __init__(
-        self, lag, batch_size, lr, sigma=0.01, grad_clip=None
-    ):
+    def __init__(self, lag, batch_size, lr, sigma=0.01, grad_clip=None):
         self.lag = lag
         self.lr = lr
         self.sigma = sigma
