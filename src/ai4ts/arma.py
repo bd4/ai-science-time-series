@@ -64,6 +64,43 @@ def main():
                 print(y[-10:])
 
 
+def float_array_to_str(a, sep=",", fmt="{:1.2f}"):
+    return sep.join(fmt.format(val) for val in a)
+
+
+class ARIMAParams(object):
+    def __init__(self, ar, coeff, ma):
+        self.ar = ar
+        self.coeff = coeff
+        self.ma = ma
+
+    @property
+    def ar_order(self):
+        return len(self.ar)
+
+    @property
+    def ma_order(self):
+        return len(self.ma)
+
+    @property
+    def i(self):
+        return max(0, len(self.coeff) - 1)
+
+    @classmethod
+    def from_dict(cls, d):
+        return cls(d["ar"], d["coeff"], d["ma"])
+
+    def __str__(self):
+        parts = []
+        if self.ar:
+            parts.append("φ({})".format(float_array_to_str(self.ar)))
+        if self.i > 0:
+            parts.append("{:d}".format(self.i))
+        if self.ma:
+            parts.append("θ({})".format(float_array_to_str(self.ma)))
+        return ", ".join(parts)
+
+
 def arma_generate(n, phi, theta, scale=1.0, mean=0, frequency=None, dtype=None):
     """
     Generate a sequence with an ARMA process
@@ -203,10 +240,16 @@ class ARIMAModel(ai4ts.model.TimeSeriesModel):
             self.order = (ar_order, i_order, ma_order)
         self.model = sfmodels.ARIMA(order=self.order)
         self.model.fit(history)
+        param_dict = self.model.model_["model"]
+        self.params = ARIMAParams(
+            param_dict["phi"].tolist(),
+            param_dict["delta"].tolist(),
+            param_dict["theta"].tolist(),
+        )
 
     def predict(self, prediction_length):
         prediction = self.model.predict(prediction_length)
-        return ai4ts.model.Forecast(prediction["mean"], "ARIMA CSS-ML", self.model)
+        return ai4ts.model.Forecast(prediction["mean"], "ARIMA CSS-ML", self.params)
 
 
 class AutoARIMAModel(ai4ts.model.TimeSeriesModel):
@@ -217,10 +260,16 @@ class AutoARIMAModel(ai4ts.model.TimeSeriesModel):
             history = history.values
         self.model = sfmodels.AutoARIMA(seasonal=False)
         self.model.fit(history)
+        param_dict = self.model.model_["model"]
+        self.params = ARIMAParams(
+            param_dict["phi"].tolist(),
+            param_dict["delta"].tolist(),
+            param_dict["theta"].tolist(),
+        )
 
     def predict(self, prediction_length):
         prediction = self.model.predict(prediction_length)
-        return ai4ts.model.Forecast(prediction["mean"], "Auto-ARIMA", self.model)
+        return ai4ts.model.Forecast(prediction["mean"], "Auto-ARIMA", self.params)
 
 
 if __name__ == "__main__":

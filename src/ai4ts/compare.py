@@ -8,8 +8,7 @@ import yaml
 
 import ai4ts
 import ai4ts.arma
-
-import ipdb
+from ai4ts.arma import ARIMAParams
 
 
 MODEL_NAME_CLASS = {
@@ -41,43 +40,6 @@ def _get_model_class(dotted_name):
     module_name, class_name = dotted_name.rsplit(".", 1)
     mod = importlib.import_module(module_name)
     return getattr(mod, class_name)
-
-
-def float_array_to_str(a, sep=",", fmt="{:1.2f}"):
-    return sep.join(fmt.format(val) for val in a)
-
-
-class ARIMAParams(object):
-    def __init__(self, ar, coeff, ma):
-        self.ar = ar
-        self.coeff = coeff
-        self.ma = ma
-
-    @property
-    def ar_order(self):
-        return len(self.ar)
-
-    @property
-    def ma_order(self):
-        return len(self.ma)
-
-    @property
-    def i(self):
-        return max(0, len(self.coeff) - 1)
-
-    @classmethod
-    def from_dict(cls, d):
-        return cls(d["ar"], d["coeff"], d["ma"])
-
-    def __str__(self):
-        parts = []
-        if self.ar:
-            parts.append("φ({})".format(float_array_to_str(self.ar)))
-        if self.i > 0:
-            parts.append("{:d}".format(self.i))
-        if self.ma:
-            parts.append("θ({})".format(float_array_to_str(self.ma)))
-        return ", ".join(parts)
 
 
 def get_arg_parser():
@@ -183,7 +145,6 @@ def main():
 
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex="col", layout="tight")
     fig.autofmt_xdate(rotation=60)
-    ipdb.set_trace()
 
     for i, dataset in enumerate(datasets):
         if nrows > 1:
@@ -217,7 +178,7 @@ def main():
             mae = mean_absolute_error(
                 fcast.data, df.iloc[-args.prediction_length :]["target"].values
             )
-            print(f"{fcast.name:15s}{mae:.3f}")
+            print(f"{fcast.name:15s}{mae:.3f}\t{str(fcast.model)}")
         print()
         # import ipdb; ipdb.set_trace()
         ai4ts.plot.plot_prediction(
