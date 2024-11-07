@@ -32,8 +32,9 @@ lag-llama = [
 ]
 timesfm = ["timesfm"]
 lint = ["ruff"]
+test = ["astsadata"]
 ml = ["ai4ts[chronos,lag-llama,timesfm]"]
-all = ["ai4ts[chronos,lag-llama,timesfm,lint]"]
+all = ["ai4ts[chronos,lag-llama,timesfm,lint,test]"]
 
 [project.urls]
 Homepage = "https://github.com/bd4/ai-science-time-series"
