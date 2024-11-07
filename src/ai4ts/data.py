@@ -141,6 +141,59 @@ class GlacialVarve(TimeseriesDataset):
         return self.get_description()
 
 
+class ChickenPrices(TimeseriesDataset):
+    def __init__(self):
+        import astsadata
+
+        self.df_actual = pd.read_csv(
+            f"{astsadata.path}/data/chicken.csv",
+            header=0,
+            names=["index", "target"],
+            index_col=0,
+            parse_dates=True,
+            dtype={"index": None, "target": np.float32},
+        )
+        self.df_actual["ds"] = self.df_actual.index
+        self.prediction_start = self.df_actual.index[-1]
+        self.df_diff = None
+
+    def get_actual_data(self):
+        return self.df_actual
+
+    def get_transformed_data(self):
+        # Note: Shumway example 3.33, this fits MA(1) reasonably well
+        if self.df_diff is None:
+            self.df_diff = self.df_actual.copy()
+            self.df_diff["target"] = self.df_diff["target"].diff().astype(np.float32)
+            # remove first row with NA diff
+            self.df_diff = self.df_diff.iloc[1:]
+        return self.df_diff
+
+    def prediction_to_actual_data(self, df_predicted):
+        last = self.df_actual[-1]
+        log_actual = np.cumsum(df_predicted["target"].values) + last
+        return log_actual
+
+    def get_description(self):
+        return "chicken-prices"
+
+    @property
+    def ar_order(self):
+        return 1
+
+    @property
+    def i(self):
+        return 1
+
+    @property
+    def ma_order(self):
+        return 1
+
+    def __str__(self):
+        return self.get_description()
+
+
 DATASETS = dict(
     glacial_varve=GlacialVarve(),
+    chicken_prices=ChickenPrices(),
 )
