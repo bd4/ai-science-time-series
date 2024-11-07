@@ -9,8 +9,6 @@ import torch.nn.functional as F
 
 import ai4ts
 
-import ipdb
-
 
 def get_lag_input_output_sizes(series_len, lag):
     in_size = (series_len - lag, lag)
@@ -31,8 +29,8 @@ def create_lag_input_output(series_data, lag):
 
 
 def mean_sq_error(predictions, actual):
-    l = (predictions - actual) ** 2 / 2
-    return l.mean()
+    diffsq = (predictions - actual) ** 2 / 2
+    return diffsq.mean()
 
 
 class SimpleLinearRegression(object):
