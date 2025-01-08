@@ -12,6 +12,9 @@ class LagLlamaModel(ai4ts.model.TimeSeriesModel):
         self.num_samples = kwargs.get("num_samples", 100)
         device = kwargs.get("device", "cuda")
 
+        if isinstance(history, pd.Series):
+            history = history.values
+
         # Note: lag-llama requires times as index
         df = pd.DataFrame({"target": history}, index=times)
         self.history = PandasDataset(df)

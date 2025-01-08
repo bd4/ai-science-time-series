@@ -16,6 +16,9 @@ class TimesFmModel(ai4ts.model.TimeSeriesModel):
         elif device != "cpu":
             device = "tpu"
 
+        if isinstance(history, pd.Series):
+            history = history.values
+
         self.history = pd.DataFrame({"y": history, "ds": times})
         self.history["unique_id"] = 0
 

@@ -94,6 +94,68 @@ def read_arma_test_yaml(config_path):
     return [ARIMAParams.from_dict(case) for case in data["test_cases"]]
 
 
+def plot_dataset_predictions(
+    model_class_names,
+    datasets,
+    prediction_length,
+    device="cpu",
+    output_file=None,
+    ncols=3,
+):
+    nrows = math.ceil(len(datasets) / ncols)
+
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex="col", layout="tight")
+    fig.autofmt_xdate(rotation=60)
+
+    for i, dataset in enumerate(datasets):
+        if nrows > 1:
+            irow = i // ncols
+            icol = i % ncols
+            ax = axs[irow, icol]
+        else:
+            ax = axs[i]
+
+        df = dataset.get_transformed_data()
+        df_train = df.iloc[:-prediction_length]
+
+        print(f"=== {dataset.get_description()} ===")
+        forecast_map = {}
+        for class_name in model_class_names:
+            mclass = _get_model_class(class_name)
+            m = mclass()
+            m.fit(
+                df_train["ds"],
+                df_train["target"],
+                prediction_length,
+                ar_order=dataset.ar_order,
+                i_order=dataset.i,
+                ma_order=dataset.ma_order,
+                device=device,
+            )
+            fcast = m.predict(prediction_length)
+            forecast_map[fcast.name] = fcast.data
+            mae = mean_absolute_error(
+                fcast.data, df.iloc[-prediction_length:]["target"].values
+            )
+            print(f"{fcast.name:15s}{mae:.3f}\t{str(fcast.model)}")
+        print()
+        # import ipdb; ipdb.set_trace()
+        ai4ts.plot.plot_prediction(
+            df, forecast_map, ax=ax, legend=False, title=dataset.get_description()
+        )
+
+    if nrows > 1:
+        handles, labels = axs[0, 0].get_legend_handles_labels()
+    else:
+        handles, labels = axs[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower right")
+
+    if output_file:
+        fig.savefig(output_file)
+    else:
+        plt.show()
+
+
 def main():
     parser = get_arg_parser()
     args = parser.parse_args()
@@ -115,7 +177,8 @@ def main():
     # trend_fig = plt.figure()
     # trend_axs = trend_fig.subplots(nrows=nrows, ncols=ncols)
 
-    datasets = []
+    ar_datasets = []
+    real_datasets = []
 
     # Note: lag-llama requires float32 input data
     dtype = np.float32
@@ -135,63 +198,19 @@ def main():
             trend = ai4ts.arma.get_trend(len(df.target), p.coeff, dtype=dtype)
             df.target += trend
 
-        datasets.append(ai4ts.data.SimpleTimeseries(df, str(p)))
+        ar_datasets.append(ai4ts.data.SimpleTimeseries(df, str(p)))
 
     for ds_name in args.datasets:
-        datasets.append(ai4ts.data.DATASETS[ds_name])
+        real_datasets.append(ai4ts.data.DATASETS[ds_name])
 
-    ncols = 3
-    nrows = math.ceil(len(datasets) / ncols)
+    model_class_names = [MODEL_NAME_CLASS[n] for n in args.models]
 
-    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex="col", layout="tight")
-    fig.autofmt_xdate(rotation=60)
-
-    for i, dataset in enumerate(datasets):
-        if nrows > 1:
-            irow = i // ncols
-            icol = i % ncols
-            ax = axs[irow, icol]
-        else:
-            ax = axs[i]
-
-        df = dataset.get_transformed_data()
-        df_train = df.iloc[: -args.prediction_length]
-
-        model_class_names = [MODEL_NAME_CLASS[n] for n in args.models]
-
-        print(f"=== {dataset.get_description()} ===")
-        forecast_map = {}
-        for class_name in model_class_names:
-            mclass = _get_model_class(class_name)
-            m = mclass()
-            m.fit(
-                df_train["ds"],
-                df_train["target"],
-                args.prediction_length,
-                ar_order=dataset.ar_order,
-                i_order=dataset.i,
-                ma_order=dataset.ma_order,
-                device=args.device,
-            )
-            fcast = m.predict(args.prediction_length)
-            forecast_map[fcast.name] = fcast.data
-            mae = mean_absolute_error(
-                fcast.data, df.iloc[-args.prediction_length :]["target"].values
-            )
-            print(f"{fcast.name:15s}{mae:.3f}\t{str(fcast.model)}")
-        print()
-        # import ipdb; ipdb.set_trace()
-        ai4ts.plot.plot_prediction(
-            df, forecast_map, ax=ax, legend=False, title=dataset.get_description()
-        )
-
-    if nrows > 1:
-        handles, labels = axs[0, 0].get_legend_handles_labels()
-    else:
-        handles, labels = axs[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="lower right")
-
-    if args.output_file:
-        fig.savefig(args.output_file)
-    else:
-        plt.show()
+    plot_dataset_predictions(
+        model_class_names,
+        ar_datasets,
+        args.prediction_length,
+        device=args.device,
+        output_file=args.output_file,
+        ncols=3,
+    )
+    # plot_dataset_predictions(model_class_names, real_datasets)
