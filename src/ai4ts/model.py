@@ -12,6 +12,12 @@ class Forecast(object):
 
 
 class TimeSeriesModel(abc.ABC):
+    """
+    Flag for deep learning and other flexible models, indicating not to apply custom
+    per-dataset pre/post processing (e.g. taking log of the data).
+    """
+    deep = True
+
     @abc.abstractmethod
     def fit(self, times, history, max_prediction_length, **kwargs):
         """

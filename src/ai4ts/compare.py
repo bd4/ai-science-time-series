@@ -23,6 +23,13 @@ MODEL_NAME_CLASS = {
 }
 
 
+def add_postfix_to_file_name(fname, postfix):
+    if fname is None:
+        return None
+    name, ext = os.path.splitext(fname)
+    return name + postfix + ext
+
+
 def mean_absolute_error(a, b):
     """
     Hack to make work with numpy and/or torch
@@ -34,6 +41,19 @@ def mean_absolute_error(a, b):
 
         a = torch.tensor(a)
         return torch.mean(torch.abs(a - b))
+
+
+def root_mean_square_error(a, b):
+    """
+    Hack to make work with numpy and/or torch
+    """
+    if isinstance(a, np.ndarray):
+        return math.sqrt(np.mean(np.square(a - b)))
+    else:
+        import torch
+
+        a = torch.tensor(a)
+        return math.sqrt(torch.mean(torch.square(a - b)))
 
 
 def _get_model_class(dotted_name):
@@ -101,10 +121,15 @@ def plot_dataset_predictions(
     device="cpu",
     output_file=None,
     ncols=3,
+    shared_time=False,
 ):
     nrows = math.ceil(len(datasets) / ncols)
 
-    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex="col", layout="tight")
+    if shared_time:
+        sharex = "col"
+    else:
+        sharex = "none"
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, sharex=sharex, layout="tight")
     fig.autofmt_xdate(rotation=60)
 
     for i, dataset in enumerate(datasets):
@@ -115,17 +140,25 @@ def plot_dataset_predictions(
         else:
             ax = axs[i]
 
-        df = dataset.get_transformed_data()
+        df = dataset.get_actual_data()
         df_train = df.iloc[:-prediction_length]
+
+        # needed for ARIMA models
+        df_transformed = dataset.get_transformed_data()
+        df_transformed_train = df_transformed.iloc[:-prediction_length]
 
         print(f"=== {dataset.get_description()} ===")
         forecast_map = {}
         for class_name in model_class_names:
             mclass = _get_model_class(class_name)
+            if mclass.deep:
+                input_df = df_train
+            else:
+                input_df = df_transformed_train
             m = mclass()
             m.fit(
-                df_train["ds"],
-                df_train["target"],
+                input_df["ds"],
+                input_df["target"],
                 prediction_length,
                 ar_order=dataset.ar_order,
                 i_order=dataset.i,
@@ -133,15 +166,28 @@ def plot_dataset_predictions(
                 device=device,
             )
             fcast = m.predict(prediction_length)
-            forecast_map[fcast.name] = fcast.data
+            if mclass.deep:
+                predicted_data = fcast.data
+            else:
+                predicted_data = dataset.prediction_to_actual_data(fcast.data)
+            forecast_map[fcast.name] = predicted_data
             mae = mean_absolute_error(
-                fcast.data, df.iloc[-prediction_length:]["target"].values
+                predicted_data, df.iloc[-prediction_length:]["target"].values
             )
-            print(f"{fcast.name:15s}{mae:.3f}\t{str(fcast.model)}")
+            rmse = root_mean_square_error(
+                predicted_data, df.iloc[-prediction_length:]["target"].values
+            )
+            model_str = str(fcast.model).split("\n")[0]
+            print(f"{fcast.name:15s}{mae:.3f}\t{rmse:.3f}\t{model_str}")
         print()
         # import ipdb; ipdb.set_trace()
         ai4ts.plot.plot_prediction(
-            df, forecast_map, ax=ax, legend=False, title=dataset.get_description()
+            df,
+            forecast_map,
+            ax=ax,
+            legend=False,
+            title=dataset.get_description(),
+            display_cycles=2,
         )
 
     if nrows > 1:
@@ -205,12 +251,23 @@ def main():
 
     model_class_names = [MODEL_NAME_CLASS[n] for n in args.models]
 
-    plot_dataset_predictions(
-        model_class_names,
-        ar_datasets,
-        args.prediction_length,
-        device=args.device,
-        output_file=args.output_file,
-        ncols=3,
-    )
-    # plot_dataset_predictions(model_class_names, real_datasets)
+    if ar_datasets:
+        plot_dataset_predictions(
+            model_class_names,
+            ar_datasets,
+            args.prediction_length,
+            device=args.device,
+            output_file=add_postfix_to_file_name(args.output_file, "_arma"),
+            ncols=3,
+            shared_time=True,
+        )
+    if real_datasets:
+        plot_dataset_predictions(
+            model_class_names,
+            real_datasets,
+            args.prediction_length,
+            device=args.device,
+            output_file=add_postfix_to_file_name(args.output_file, "_real"),
+            ncols=3,
+            shared_time=False,
+        )

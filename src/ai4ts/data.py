@@ -120,11 +120,11 @@ class GlacialVarve(TimeseriesDataset):
             self.df_difflog = self.df_difflog.iloc[1:]
         return self.df_difflog
 
-    def prediction_to_actual_data(self, df_predicted):
-        last = self.df_actual[-1]
-        log_actual = np.cumsum(df_predicted["target"].values) + last
-        log_actual["target"] = log_actual["target"].map(np.exp)
-        return log_actual
+    def prediction_to_actual_data(self, predicted_data):
+        # TODO: this is a bad name, maybe "transform_prediction"?
+        last = self.df_actual["target"].iloc[-1]
+        actual = np.cumsum(predicted_data) + last
+        return np.exp(actual)
 
     def get_description(self):
         return "glacial-varve"
@@ -169,10 +169,9 @@ class ChickenPrices(TimeseriesDataset):
             self.df_diff = self.df_diff.iloc[1:]
         return self.df_diff
 
-    def prediction_to_actual_data(self, df_predicted):
-        last = self.df_actual[-1]
-        log_actual = np.cumsum(df_predicted["target"].values) + last
-        return log_actual
+    def prediction_to_actual_data(self, predicted_data):
+        last = self.df_actual["target"].iloc[-1]
+        return np.cumsum(predicted_data) + last
 
     def get_description(self):
         return "chicken-prices"

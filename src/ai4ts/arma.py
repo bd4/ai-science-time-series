@@ -227,6 +227,8 @@ def get_arg_parser():
 
 
 class ARIMAModel(ai4ts.model.TimeSeriesModel):
+    deep = False
+
     def fit(self, times, history, max_prediction_length, **kwargs):
         import statsforecast.models as sfmodels
 
@@ -253,6 +255,8 @@ class ARIMAModel(ai4ts.model.TimeSeriesModel):
 
 
 class AutoARIMAModel(ai4ts.model.TimeSeriesModel):
+    deep = False
+
     def fit(self, times, history, max_prediction_length, **kwargs):
         import statsforecast.models as sfmodels
 
